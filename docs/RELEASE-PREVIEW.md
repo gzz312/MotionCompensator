@@ -1,6 +1,8 @@
 # 0.1.0-preview.1 预览验证与发布记录
 
-日期：2026-11-08。候选验证及GitHub发布准备记录。仓库：https://github.com/gzz312/MotionCompensator。二进制发布状态以Releases页面为准。
+日期：2026-11-08。0.1.0-preview.1已公开发布，标记为Pre-release（预览版），不是稳定版。仓库：https://github.com/gzz312/MotionCompensator。
+
+[版本发布页](https://github.com/gzz312/MotionCompensator/releases/tag/v0.1.0-preview.1) · [Windows x64预览包](https://github.com/gzz312/MotionCompensator/releases/download/v0.1.0-preview.1/MotionCompensator-0.1.0-preview.1-win-x64.zip)。
 
 ## 本轮变更
 
@@ -21,11 +23,11 @@
 | 包内容 | EXE、中英START-HERE、中英KNOWN-ISSUES、RELEASE-PREVIEW、LICENSE、PROJECT-NOTICES、THIRD-PARTY-LICENSES、SHA256SUMS共10个文件，包内EXE与已检查版本逐字节一致 |
 | 实际桌面 | 从新版版本目录启动，标题正确；深色使用说明、许可与致谢可显示；完整新许可及第三方声明已加载 |
 | 设置与日志 | 沿用用户已有设置，普通启动未创建logs目录；未调整用户视觉或主题设置 |
-| 版本管理 | 仅本地Git与源码备份保留；当前源码发布目标为gzz312/MotionCompensator；旧版仍留在本地 |
+| 版本管理 | 源码与0.1.0-preview.1预览包已公开发布至gzz312/MotionCompensator；本地主分支与GitHub同步，原开发历史及旧版本仍保留 |
 
 EXE SHA256：`CF3E23678E3E2B3428E1B2D9DB2506557ED46BBD6AB876AF663C7B360A5677E6`。
 
-本轮没有修改采集、光流或点阵运动算法，没有操作游戏；不将历史版的软件自采集计数当作本版重新测量的结果。尚未做另一台电脑的首次启动、多显示器/高DPI全面回归或真实游戏效果验证。既有边界见KNOWN-ISSUES.md。
+发布整理没有修改采集、光流或点阵运动算法；构建与自动检查阶段未操作游戏，不将历史软件自采集计数当作本版重新测量的结果。README后续加入了由用户操作PAYDAY 2采集的实机截图和GIF，仅用于视觉演示。另一台电脑的首次启动、多显示器/高DPI全面回归以及系统性的游戏内缓解效果评估仍未完成。既有边界见KNOWN-ISSUES.md。
 
 ## 编号约定
 
@@ -40,9 +42,15 @@ Windows包：`dist/MotionCompensator-0.1.0-preview.1-win-x64.zip`。
 
 许可文本是按项目发布意图整理的自定义条款，尚未经独立法律专业审阅；不声称已验证所有司法地区的可执行性。
 
-## GitHub发布准备
+## GitHub发布与后续说明更新
 
 - 中文和English README互相切换；六份核心文档提供成对语言入口，软件已有独立语言切换按钮。
 - 新增双语贡献说明，维持完整项目及第三方许可。
 - 清理七个旧构建临时目录，约640 MiB；保留当前构建、版本包、日志、源码、依赖和历史记录。
 - 源码不上传依赖缓存、旧EXE、原始诊断日志或工作区临时文件。
+
+## 旧发布包中的文档快照
+
+已发布的0.1.0-preview.1压缩包和标签保存首次发布时的构建快照。其中“仅本地”“发布准备”等个别措辞描述打包时的阶段，不能作为当前未发布的依据。当前源码与二进制预览均已公开，最新状态说明以本文件和对应Release为准。
+
+本次只更正主分支文档与Release状态说明，不重写旧标签、不替换原EXE/压缩包，也不改变其既有校验值。历史章节中的“当时许可未定”同样不是当前许可状态；当前许可见根目录LICENSE.txt。

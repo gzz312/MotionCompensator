@@ -32,7 +32,7 @@ The full Chinese terms in [LICENSE.txt](LICENSE.txt) govern; its English text is
 
 ## Getting started
 
-The distributable is `MotionCompensator-0.1.0-preview.1-win-x64.zip`. Extract it and run `MotionCompensator.exe`. Published binaries will appear on the repository's [Releases page](https://github.com/gzz312/MotionCompensator/releases); if no release exists yet, build from source below. Local development packages live in `versions/0.1.0-preview.1/` and are excluded from the source repository.
+**0.1.0-preview.1 is publicly released.** [Download the Windows x64 preview ZIP](https://github.com/gzz312/MotionCompensator/releases/download/v0.1.0-preview.1/MotionCompensator-0.1.0-preview.1-win-x64.zip), extract it and run `MotionCompensator.exe`. Other assets and checksums are on the [release page](https://github.com/gzz312/MotionCompensator/releases/tag/v0.1.0-preview.1). Local development packages live in `versions/0.1.0-preview.1/` and are excluded from the source repository.
 
 The EXE embeds non-system dependencies, initial settings, instructions, credits and license texts. Installing OpenCV or a compiler is unnecessary for running a packaged build.
 
@@ -76,4 +76,4 @@ Tools may be on PATH or supplied with `-Compiler` and `-ToolsRoot`. Dependency c
 
 The screen-edge visual design was inspired by shsr07 (拾荒散人)'s [MotionStabilizer](https://github.com/shsr07/MotionStabilizer). Thanks to the author for sharing and discussing the design. [Author's Bilibili video](https://www.bilibili.com/video/BV1saKg6XEvg/). The scoped comparison of current sources found no direct code copying; this is not a guarantee of zero similarity. References do not imply participation or endorsement.
 
-The repository contains source, build scripts and selected development records. Machine-local logs, dependency caches, old EXEs and temporary build files are excluded. The Releases page is authoritative for whether a binary release has actually been published.
+The repository contains source, build scripts and selected development records. Machine-local logs, dependency caches, old EXEs and temporary build files are excluded. The current binary release is [0.1.0-preview.1](https://github.com/gzz312/MotionCompensator/releases/tag/v0.1.0-preview.1), which remains a preview.

@@ -30,7 +30,7 @@ GIF为**25帧/秒、约3秒**的原速片段，已缩放和压缩；由重新录
 
 ## 开始使用
 
-可分发文件为`MotionCompensator-0.1.0-preview.1-win-x64.zip`，解压后双击`MotionCompensator.exe`。已发布的二进制包会放在[Releases页面](https://github.com/gzz312/MotionCompensator/releases)；若暂时没有Release，请按下方步骤从源码构建。本地开发包仍保存在`versions/0.1.0-preview.1/`，不进入源码仓库。EXE已内置依赖、初始配置、说明、致谢和第三方许可；无需安装OpenCV或编译器。
+**0.1.0-preview.1 已公开发布。** [下载Windows x64预览包](https://github.com/gzz312/MotionCompensator/releases/download/v0.1.0-preview.1/MotionCompensator-0.1.0-preview.1-win-x64.zip)，解压后双击`MotionCompensator.exe`；其他附件与校验文件见[版本发布页](https://github.com/gzz312/MotionCompensator/releases/tag/v0.1.0-preview.1)。本地开发包仍保存在`versions/0.1.0-preview.1/`，不进入源码仓库。EXE已内置依赖、初始配置、说明、致谢和第三方许可；无需安装OpenCV或编译器。
 
 1. 退出其他版本，启动游戏，优先使用无边框或窗口模式。
 2. 保持“自动识别前台游戏”开启，切回已识别游戏；未知游戏可刷新窗口列表、选择窗口并连接。
@@ -72,4 +72,4 @@ Ctrl+Alt+F8切换方案；Ctrl+Alt+F9显示/隐藏；Ctrl+Alt+F10停止采集和
 
 屏边点阵设计思路与创意参考shsr07（拾荒散人）的[MotionStabilizer](https://github.com/shsr07/MotionStabilizer)，感谢作者的分享与交流。[作者B站视频](https://www.bilibili.com/video/BV1saKg6XEvg/)。经当前源码对比，未发现直接代码复制；检查结论有范围限制，参考不代表作者参与开发或为效果背书。
 
-本仓库只包含源码、构建脚本和筛选后的开发记录；不提交本机日志、依赖缓存、旧版EXE或构建临时文件。是否已有二进制发布，以Releases页面的实际内容为准。
+本仓库只包含源码、构建脚本和筛选后的开发记录；不提交本机日志、依赖缓存、旧版EXE或构建临时文件。当前二进制版本为[0.1.0-preview.1](https://github.com/gzz312/MotionCompensator/releases/tag/v0.1.0-preview.1)，仍属于预览版。
