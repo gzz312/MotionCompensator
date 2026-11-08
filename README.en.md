@@ -20,7 +20,7 @@ Click an image for a larger view. These are the custom appearance settings used 
 
 ![PAYDAY 2 regional-dot gameplay demonstration](assets/demo/payday2-regional.gif)
 
-The GIF plays a short excerpt at its original speed with reduced frame sampling, resolution and colors. See [capture and media notes](assets/demo/README.md#english).
+The GIF is a **25 fps, approximately 3-second** excerpt at its original speed, made from a new high-frame-rate capture with reduced resolution and colors. See [capture and media notes](assets/demo/README.md#english).
 
 ## License
 

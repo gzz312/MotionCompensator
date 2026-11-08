@@ -20,7 +20,7 @@ Windows原生C++20游戏晕动辅助工具，提供外部透明鼠标穿透点�
 
 ![收获日2分区点阵动态演示](assets/demo/payday2-regional.gif)
 
-GIF为原速短片段，已降采样、缩放和压缩。拍摄说明与素材权利见[素材说明](assets/demo/README.md)。
+GIF为**25帧/秒、约3秒**的原速片段，已缩放和压缩；由重新录制的高帧率原片生成。拍摄说明与素材权利见[素材说明](assets/demo/README.md)。
 
 ## 使用许可
 
