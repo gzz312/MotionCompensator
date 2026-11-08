@@ -1,0 +1,31 @@
+MotionCompensator — preview / 预览测试版
+
+Project release license / 项目发布许可
+LicenseRef-MotionCompensator-Integration-1.0 (custom source-available license).
+Free use and sharing; commercial integration with attribution is permitted. Standalone sale, paid rebrands and separate paid unlocks are prohibited. The full LICENSE.txt is embedded below; its Chinese terms govern.
+项目采用《MotionCompensator 源码公开与商业集成许可 1.0》：允许免费使用和分享、署名商业集成；禁止独立售卖、换皮售卖和单独收费解锁。完整 LICENSE.txt 内置于下方，中文正文为准。
+Project / 本项目: https://github.com/gzz312/MotionCompensator
+Preview build. Third-party components retain their own licenses.
+预览测试版；第三方组件仍按各自许可使用。
+
+Design references and thanks / 设计参考与致谢
+Screen-edge motion-dot visual design was inspired by shsr07 (拾荒散人)'s MotionStabilizer.
+屏边动态点阵的视觉设计参考了原作者 shsr07（拾荒散人）的设计思路与创意，感谢作者的分享和交流。
+Project / 项目: https://github.com/shsr07/MotionStabilizer
+Author video / 作者视频: https://www.bilibili.com/video/BV1saKg6XEvg/
+
+Staggered-layout and periodic-continuity ideas were informed by Miguel Peixoto's MotionCues.
+交错排布与周期连续性的设计思路参考了 MotionCues，感谢 Miguel Peixoto 的开源分享。
+https://github.com/mcpeixoto/MotionCues
+Peregrine was consulted as a visual-anchor product reference / 视觉锚点产品参考：
+https://github.com/Eeymoo/peregrine
+
+The current source comparison found no direct code copying. This is a bounded review result, not a guarantee of zero similarity.
+经当前源码对比，未发现直接代码复制；这是一项有范围限制的检查结论，不是零相似度保证。
+References do not imply participation in this project or endorsement of its effects.
+参考与致谢不代表原作者参与本项目开发或为使用效果背书。
+
+Third-party notices / 第三方许可
+OpenCV 4.12.0 and bundled components; GCC runtime libraries (GPLv3 with GCC Runtime Library Exception 3.1); MinGW-w64 winpthreads.
+The full third-party texts are embedded in the executable and reproduced below.
+第三方完整许可文本内置于EXE，并在下方保留。

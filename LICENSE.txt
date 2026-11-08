@@ -1,0 +1,44 @@
+MotionCompensator 源码公开与商业集成许可 1.0
+MotionCompensator Source-Available and Commercial Integration License 1.0
+SPDX-License-Identifier: LicenseRef-MotionCompensator-Integration-1.0
+
+版权及适用范围
+Copyright (c) 2026 gzz312 及各相关权利人。
+本许可适用于明确按本许可提供的 MotionCompensator 原创源码、可执行文件及随附项目文档（以下称“本软件”），且仅在许可人有权授权的范围内生效。第三方组件和其许可文本不属于本许可的重新授权范围，仍分别遵守其原有许可。
+本文件是项目自定义的软件许可，不是 MIT、GPL 或经 OSI 批准的开源许可证。中文条款为许可正文，文末英文为说明性摘要；有歧义时以中文正文为准。
+
+1. 允许的使用
+在遵守本许可的前提下，任何个人或组织均可免费使用、阅读、研究、复制、修改本软件，并免费分发原版或修改版。个人使用、公司内部使用、科研教学、评测、教程及有收入的直播或视频中使用本软件均被允许。
+允许把本软件的代码或功能集成到更大的商业或非商业作品中，并销售该更大作品，条件是满足第 2、3、4 条。不会仅因集成本软件而要求该更大作品的其他独立部分公开源码。
+
+2. 商业集成与独立销售的边界
+“更大作品”应具有独立于本软件的实质用途和功能，本软件作为其中的组成部分。例如，将相关功能集成到游戏、视频软件或具有其他实质功能的综合工具中。
+不得对本软件本身或其修改版的获取、下载、激活、使用权或功能解锁收取费用；不得将其作为独立付费软件、插件、DLC、订阅或其他独立付费项目销售。
+改名、换图标、换界面、调整参数、轻微修改，或仅添加安装器、启动器、文档及其他简单包装，不能据此把本软件变成可售卖的更大作品。仅将本软件与其他项目打包、捆绑，也不构成商业集成授权。
+更大作品可以整体收费，但不得为其中基于本软件的功能单独设置额外付费项。不得通过形式上的集成、捆绑或拆分收费，实质上出售本软件或其修改版。
+是否符合商业集成条件取决于实际功能与交易方式，不仅取决于名称、文件数量或打包方式。
+
+3. 注明出处与修改
+分发本软件、修改版或包含其代码的更大作品时，应保留相关版权声明及完整本许可文本，并在用户可访问的“关于”“致谢”“第三方声明”或随附文档中注明：MotionCompensator、作者 gzz312，以及可用的项目来源地址。官方项目地址公布前，可以注明实际取得本软件的来源地址；无公开地址时应明确注明项目名和作者，不得编造链接。
+修改版还应注明已作修改，并以简要文字说明主要修改内容和修改日期。不得将修改版冒充官方原版，不得暗示原作者参与或为衍生作品背书。本许可不授予将项目商标或标识用于误导性宣传的权利。
+
+4. 后续分发与权利保留
+单独分发本软件及其修改版时，应使本许可继续适用于其中受本许可覆盖的部分；不得通过另附条款取消免费使用、署名要求或禁止独立销售等条件。无需仅因分发修改版而提供其源码。
+商业集成作品可对自身独立部分采用其他条款，包括闭源商业条款，但不得将本软件受本许可覆盖的部分重新授权为允许独立销售，也不得把本许可扩展至第三方组件或其他独立代码。
+合法取得副本的接收者可依本许可直接行使所授予的权利。本许可没有为项目作者设置独立收费销售的特殊例外。
+
+5. 不担保与责任限制
+在适用法律允许的最大范围内，本软件按“现状”提供，不作适销性、特定用途适用性、不侵权、兼容性或晕动缓解效果的任何明示或默示担保。使用者自行决定是否使用；本软件不用于诊断或治疗疾病。
+在适用法律允许的最大范围内，许可人和贡献者不对因使用或无法使用本软件产生的损失承担责任。适用法律不允许排除的责任不受本条影响。
+
+6. 终止与可分割性
+违反本许可时，依本许可取得的授权终止；因疏忽造成的首次违约，在收到违约通知后 30 日内完全纠正的，授权自动恢复。本条不影响适用法律规定的其他救济。
+任何条款被认定无效或不可执行时，其余条款在适用法律允许的范围内继续有效。
+
+English summary (informational; the Chinese terms above govern)
+You may use, study, modify and redistribute MotionCompensator free of charge, including internal business use and monetized videos or streams.
+Commercial integration into a larger work with substantial independent purpose and functionality is permitted with attribution. The independent parts of that work may remain closed source.
+Standalone sale of this software or modified/rebranded versions is prohibited, including paid downloads, activation, subscriptions and standalone plugins/DLC. Simple wrappers, trivial changes and bundling do not qualify as integration. Do not charge separately to unlock the integrated MotionCompensator-based functionality.
+Preserve copyright notices and this full license. Credit MotionCompensator and gzz312, provide an available source address, and identify modifications and their dates. Do not imply official endorsement.
+Covered portions remain subject to these terms; third-party components retain their own licenses. No special standalone-sale exception is provided for the author. Redistribution does not itself require disclosure of source code.
+The software is provided AS IS, without warranty to the extent permitted by applicable law. Breach terminates permission, subject to the first-breach cure provision above.

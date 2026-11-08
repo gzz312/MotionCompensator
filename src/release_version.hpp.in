@@ -1,0 +1,5 @@
+#pragma once
+namespace mc {
+inline constexpr wchar_t DisplayName[]=L"MotionCompensator @MC_RELEASE_VERSION@";
+inline constexpr char ReleaseVersion[]="@MC_RELEASE_VERSION@";
+}

@@ -1,0 +1,33 @@
+# Generated output and machine-local data
+/build*/
+/logs/
+/versions/
+/dist/
+/.vs/
+/.idea/
+/MotionCompensator.exe
+/third_party/opencv/
+*.zip
+*.dmp
+*.pdb
+__pycache__/
+# Public documentation is curated; all old records remain locally available.
+/docs/*
+!/docs/BUILD.md
+!/docs/TESTING.md
+!/docs/KNOWN-ISSUES.md
+!/docs/CREDITS.md
+!/docs/PRIVACY.md
+!/docs/RELEASE-PREVIEW.md
+!/docs/DEVELOPMENT.md
+!/docs/HISTORY.md
+!/docs/THIRD-PARTY.md
+!/docs/PREVIEW-README.txt
+!/docs/REFERENCE-CODE-AUDIT-2026-11-08.md
+/work-next.py
+/work-ui.py
+
+# Bilingual public documentation
+!/docs/en/
+!/docs/en/**
+!/docs/PREVIEW-README.en.txt
