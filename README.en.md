@@ -6,6 +6,22 @@ A native Windows C++20 visual-assistance tool for game motion discomfort. It dra
 
 **Current preview: 0.1.0-preview.1. Custom source-available and commercial integration license.** Dependencies retain their own licenses. Comfort effects vary by person, game and settings; general effectiveness has not been established.
 
+## Gameplay demonstration
+
+Real PAYDAY 2 footage demonstrating visual presentation only, not established comfort efficacy or benchmark results. The user supplied the three comparison screenshots below, one for each style.
+
+| Regional dots | Screen-edge dots | Static dots (4×4) |
+| --- | --- | --- |
+| ![Regional dots: fine peripheral dots and a clear center](assets/demo/payday2-regional-user.jpg) | ![Screen-edge dots: large dots along the left and right edges](assets/demo/payday2-edge-user.jpg) | ![Static dots: a fixed 4×4 reference](assets/demo/payday2-static-user.jpg) |
+
+Click an image for a larger view. These are the custom appearance settings used during capture, not mandatory colors or dot sizes.
+
+**Regional dots in motion:**
+
+![PAYDAY 2 regional-dot gameplay demonstration](assets/demo/payday2-regional.gif)
+
+The GIF plays a short excerpt at its original speed with reduced frame sampling, resolution and colors. See [capture and media notes](assets/demo/README.md#english).
+
 ## License
 
 Free use, study, modification and sharing are permitted. Integration into a larger commercial work with substantial independent functionality is allowed with attribution to MotionCompensator and gzz312, an available source address, and preservation of the full license.
