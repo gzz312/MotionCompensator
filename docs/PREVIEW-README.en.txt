@@ -1,4 +1,4 @@
-MotionCompensator 0.1.0-preview.1 — Preview
+MotionCompensator — Preview
 中文: START-HERE.txt
 
 Close other versions, extract the archive and run MotionCompensator.exe.
@@ -18,10 +18,10 @@ then disable it. Files are not uploaded automatically.
 Free use and sharing are allowed. Commercial integration is allowed with
 attribution. Standalone/rebranded sale and separate paid unlocks are prohibited.
 Read LICENSE.txt for the governing Chinese terms and English summary.
-Third-party terms remain separate. Actual publication status is determined
-by the GitHub repository and Releases page.
+Third-party terms remain separate.
+Project releases: https://github.com/gzz312/MotionCompensator/releases
 
-See en/KNOWN-ISSUES.md. Comfort effects require individual comparison;
-stop if discomfort occurs. Non-system dependencies are embedded in the EXE;
+See en/KNOWN-ISSUES.md. Experiences vary by person and game;
+stop if discomfort develops. Non-system dependencies are embedded in the EXE;
 Windows must still provide the system graphics components. No separate
 OpenCV installation, compiler or application DLLs are needed.

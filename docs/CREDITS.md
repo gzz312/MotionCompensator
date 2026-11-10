@@ -9,6 +9,6 @@
 - 交错排布/周期连续性思路参考Miguel Peixoto的MotionCues：https://github.com/mcpeixoto/MotionCues
 - 视觉锚点产品参考Peregrine：https://github.com/Eeymoo/peregrine
 
-经当前源码对比，未发现直接代码复制。该结论有检查范围限制，不能作为零相似度或完整来源证明；详情见REFERENCE-CODE-AUDIT-2026-11-08.md。若以后确认引用具体代码，将保留相应版权和许可声明。
+上述项目提供了视觉设计参考。2026-11-08的源码比对未发现直接代码复制，具体版本与比对范围见[源码比对记录](REFERENCE-CODE-AUDIT-2026-11-08.md)。
 
-参考与致谢不表示原作者参与开发、授权代言或为效果背书。不附作者回复截图。
+感谢各位作者分享设计思路。参考与致谢不表示原作者参与本项目开发或为使用效果背书。
