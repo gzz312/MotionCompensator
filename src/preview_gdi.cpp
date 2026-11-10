@@ -17,5 +17,9 @@ void paintPreview(HDC dc,POINT origin,const mc::PreviewScene& scene) {
     }
     HPEN pen=CreatePen(PS_SOLID,1,previewColor(scene.reticleColor,scene.reticleOpacity));auto old=SelectObject(dc,pen);
     for(auto line:scene.reticle) {MoveToEx(dc,origin.x+int(std::lround(line.from.x)),origin.y+int(std::lround(line.from.y)),nullptr);LineTo(dc,origin.x+int(std::lround(line.to.x)),origin.y+int(std::lround(line.to.y)));}
+    auto previousBrush=SelectObject(dc,GetStockObject(NULL_BRUSH));
+    HBRUSH reticleBrush=CreateSolidBrush(previewColor(scene.reticleColor,scene.reticleOpacity));
+    for(auto circle:scene.reticleCircles){SelectObject(dc,circle.filled?reticleBrush:GetStockObject(NULL_BRUSH));int x=origin.x+int(std::lround(circle.center.x)),y=origin.y+int(std::lround(circle.center.y)),r=std::max(1,int(std::lround(circle.radius)));Ellipse(dc,x-r,y-r,x+r+1,y+r+1);}
+    SelectObject(dc,previousBrush);DeleteObject(reticleBrush);
     SelectObject(dc,old);DeleteObject(pen);RestoreDC(dc,state);
 }

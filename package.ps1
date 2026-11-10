@@ -13,7 +13,9 @@ $destination=Join-Path $PSScriptRoot "versions/$version"
 New-Item -ItemType Directory -Force -Path $destination | Out-Null
 $release=Join-Path $destination 'MotionCompensator.exe'
 Copy-Item -LiteralPath (Join-Path $buildDir 'MotionCompensator.exe') -Destination $release -Force
-$files=@{'LICENSE.txt'='LICENSE.txt';'docs/PREVIEW-README.txt'='START-HERE.txt';'docs/PREVIEW-README.en.txt'='START-HERE.en.txt';'docs/en/KNOWN-ISSUES.md'='en/KNOWN-ISSUES.md';'docs/RELEASE-PREVIEW.md'='RELEASE-PREVIEW.md';'docs/KNOWN-ISSUES.md'='KNOWN-ISSUES.md';'packaging/project-notices.txt'='PROJECT-NOTICES.txt';'packaging/third-party-licenses.txt'='THIRD-PARTY-LICENSES.txt'}
+$releaseNotes="docs/RELEASE-$version.md"
+if(!(Test-Path -LiteralPath (Join-Path $PSScriptRoot $releaseNotes))){$releaseNotes='docs/RELEASE-PREVIEW.md'}
+$files=@{'LICENSE.txt'='LICENSE.txt';'docs/PREVIEW-README.txt'='START-HERE.txt';'docs/PREVIEW-README.en.txt'='START-HERE.en.txt';'docs/en/KNOWN-ISSUES.md'='en/KNOWN-ISSUES.md';$releaseNotes='RELEASE-PREVIEW.md';'docs/KNOWN-ISSUES.md'='KNOWN-ISSUES.md';'packaging/project-notices.txt'='PROJECT-NOTICES.txt';'packaging/third-party-licenses.txt'='THIRD-PARTY-LICENSES.txt'}
 foreach($source in $files.Keys){$target=Join-Path $destination $files[$source];New-Item -ItemType Directory -Force -Path (Split-Path $target -Parent) | Out-Null;Copy-Item -LiteralPath (Join-Path $PSScriptRoot $source) -Destination $target -Force}
 $hash=(Get-FileHash -LiteralPath $release -Algorithm SHA256).Hash
 Set-Content -LiteralPath (Join-Path $destination 'SHA256SUMS.txt') -Value "$hash  MotionCompensator.exe" -Encoding utf8

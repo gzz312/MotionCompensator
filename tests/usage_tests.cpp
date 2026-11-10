@@ -6,6 +6,7 @@ void require(bool b,const char* why){if(!b){std::cerr<<why;std::exit(1);}}
 static int bodyPaints=0,bodyTextSets=0,bodyFontSets=0;
 LRESULT CALLBACK countBody(HWND w,UINT m,WPARAM a,LPARAM b,UINT_PTR,DWORD_PTR){if(m==WM_PAINT)++bodyPaints;if(m==WM_SETTEXT)++bodyTextSets;if(m==WM_SETFONT)++bodyFontSets;return DefSubclassProc(w,m,a,b);}
 int main(){
+    require(std::wstring(mc::usageText(true)).find(L"留空十字")!=std::wstring::npos&&std::wstring(mc::usageText(false)).find(L"T-shape")!=std::wstring::npos,"both guides describe the new icon choices");
     auto normalized=mc::usageLines(L"one\ntwo\r\nthree\rfour");require(normalized==L"one\r\ntwo\r\nthree\r\nfour","mixed line endings normalize once");
     HWND owner=CreateWindowW(L"STATIC",L"Guide component test",WS_OVERLAPPEDWINDOW,0,0,800,700,nullptr,nullptr,GetModuleHandleW(nullptr),nullptr);
     INITCOMMONCONTROLSEX controls{sizeof(controls),ICC_BAR_CLASSES};InitCommonControlsEx(&controls);

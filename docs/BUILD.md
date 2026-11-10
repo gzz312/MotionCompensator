@@ -4,7 +4,7 @@
 
 ## 已验证环境
 
-Windows x64，MSYS2 UCRT64 GCC15.2，OpenCV4.12静态core/imgproc/video，CMake≥3.24，Ninja。Windows SDK/MinGW头文件需包含Windows Graphics Capture及DirectComposition相关接口。MSVC分支尚未验证，不应标记为已支持的构建结果。
+Windows x64，MSYS2 UCRT64 GCC15.2，OpenCV4.12静态core/imgproc/video，CMake≥3.24，Ninja。Windows SDK/MinGW头文件需包含Windows Graphics Capture及DirectComposition相关接口。MSVC构建尚未验证。
 
 ## 工具准备
 
@@ -52,4 +52,4 @@ CMake在非Windows平台会明确失败。版本由`VERSION`读取并生成程�
 
 `-SmokeTest`仅是软件自身窗口的WGC自采集检查，约6秒，默认不记录日志。非交互桌面或受限环境可能无法取得WGC权限；不要以管理员权限掩盖该失败。真实桌面的三方案检查程序为构建目录的`desktop_smoke.exe`，显式启用诊断日志，详情见TESTING.md。
 
-源码导出使用`export-source.ps1`，仅包含本地Git当前跟踪文件，不含.git历史、日志、机器依赖缓存或旧版本。该导出操作仅生成源码备份，不会自动上传或创建远程仓库。
+源码导出使用`export-source.ps1`，仅包含本地Git当前跟踪文件，不含.git历史、日志、机器依赖缓存或旧版本。该操作生成源码ZIP文件，不包含远程发布步骤。

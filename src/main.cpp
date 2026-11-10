@@ -34,7 +34,7 @@ static WindowEntry describe(HWND hwnd) {
         CloseHandle(process); }
     std::transform(w.exe.begin(),w.exe.end(),w.exe.begin(),[](wchar_t c){return std::towlower(c);}); return w;
 }
-enum { List=101, Refresh, Attach, Auto, Mode, Visible, Stop, Radius, Opacity, Spacing, Language, DotColor, ReticleColor, ReticleOpacity, ReticleSize, ReticleShape, Hole, Staggered, BoundaryFade, TabRegional, TabEdge, TabStatic, Gain, Invert, Edges, DebugParameters, Instructions, Appearance, CaptionMinimize, CaptionClose, Theme, RecordLog };
+enum { List=101, Refresh, Attach, Auto, Mode, Visible, Stop, Radius, Opacity, Spacing, Language, DotColor, ReticleColor, ReticleOpacity, ReticleSize, ReticleShape, Hole, Staggered, BoundaryFade, TabRegional, TabEdge, TabStatic, Gain, Invert, Edges, DebugParameters, Instructions, Appearance, CaptionMinimize, CaptionClose, Theme, RecordLog, ReticleFirst=200 };
 class App {
 public:
     HWND hwnd{},list{},status{},autoBox{},visibleBox{},radius{},opacity{},spacing{};
@@ -77,6 +77,7 @@ public:
     std::vector<ControlRect> controlRects;
     HWND boundaryBox{},gain{},gainLabel{},invertBox{},edgesBox{};
     std::array<HWND,3> tabs{};
+    std::array<HWND,mc::ReticleShapeCount> reticleButtons{};
     HFONT smallFont{};
     std::filesystem::path debugDirectory;
     mc::DynamicDriver driver; InputObserver inputs; double lastTick=qpcSeconds();
@@ -108,7 +109,7 @@ public:
         return en.c_str();
     }
     HFONT font{},titleFont{};
-    HWND reticleOpacity{},reticleSize{},shape{},hole{},staggerBox{};
+    HWND reticleOpacity{},reticleSize{},hole{},staggerBox{};
     mc::Color dotColor{},crossColor{.2f,1.f,.45f};
     HBRUSH background=CreateSolidBrush(mc::ui::palette.canvas),card=CreateSolidBrush(mc::ui::palette.surface);
     mc::VisualSettings visualSettings() {
@@ -205,11 +206,11 @@ public:
         driver.reset();overlay.resetMotion();markSettings();lastLog=qpcSeconds()-1;
     }
     void populateShapes(int index=0) {
-        index=std::clamp(index,0,2);
-        SendMessageW(shape,CB_RESETCONTENT,0,0);
-        for(const wchar_t* text:chinese?std::array{L"关闭",L"十字",L"菱形十字"}:std::array{L"Off",L"Cross",L"Diamond cross"})
-            SendMessageW(shape,CB_ADDSTRING,0,reinterpret_cast<LPARAM>(text));
-        SendMessageW(shape,CB_SETCURSEL,index,0);
+        for(int i=0;i<mc::ReticleShapeCount;++i)if(reticleButtons[i]){
+            SetWindowTextW(reticleButtons[i],mc::reticleName(i,chinese));
+            InvalidateRect(reticleButtons[i],nullptr,FALSE);
+        }
+        (void)index;
     }
     static COLORREF rgb(mc::Color c) {return RGB(int(c.r*255),int(c.g*255),int(c.b*255));}
     void chooseColor(mc::Color& color) {
@@ -238,7 +239,7 @@ public:
             DeleteObject(oldFont);DeleteObject(oldSmall);DeleteObject(oldTitle);
         }
         batch.commit();
-        for(HWND combo:{list,shape,edgesBox,appearanceBox})mc::fluent::comboHeight(combo,int(30*uiScale));
+        for(HWND combo:{list,edgesBox,appearanceBox})mc::fluent::comboHeight(combo,int(30*uiScale));
         RedrawWindow(hwnd,nullptr,nullptr,RDW_INVALIDATE|RDW_ALLCHILDREN);
     }
     void paint() {
@@ -286,13 +287,16 @@ public:
         bool visiblePanel=IsWindowVisible(hwnd);if(visiblePanel)SendMessageW(hwnd,WM_SETREDRAW,FALSE,0);
         DeleteObject(background);DeleteObject(card);background=CreateSolidBrush(mc::fluent::canvas);card=CreateSolidBrush(mc::fluent::surface);
         mc::ui::setNativeTheme(hwnd);
-        for(HWND combo:{list,shape,edgesBox,appearanceBox})if(combo){COMBOBOXINFO info{};info.cbSize=sizeof(info);if(GetComboBoxInfo(combo,&info)&&info.hwndList)RedrawWindow(info.hwndList,nullptr,nullptr,RDW_INVALIDATE|RDW_FRAME|RDW_UPDATENOW);}
+        for(HWND combo:{list,edgesBox,appearanceBox})if(combo){COMBOBOXINFO info{};info.cbSize=sizeof(info);if(GetComboBoxInfo(combo,&info)&&info.hwndList)RedrawWindow(info.hwndList,nullptr,nullptr,RDW_INVALIDATE|RDW_FRAME|RDW_UPDATENOW);}
         tips.applyTheme();mc::UsageWindow::applyTheme();
         if(visiblePanel)SendMessageW(hwnd,WM_SETREDRAW,TRUE,0);
         RedrawWindow(hwnd,nullptr,nullptr,RDW_INVALIDATE|RDW_ALLCHILDREN|RDW_FRAME|RDW_UPDATENOW);
     }
     std::wstring hint(int id) const{
         auto choose=[&](const wchar_t* cn,const wchar_t* en){return std::wstring(chinese?cn:en);};
+        if(id>=ReticleFirst&&id<ReticleFirst+mc::ReticleShapeCount){
+            return std::wstring(mc::reticleName(id-ReticleFirst,chinese))+(chinese?L"：点击切换准星。颜色、透明度和大小由下方控件调整，三种点阵方案共用。":L": select this reticle. Color, transparency and size are shared by all dot styles.");
+        }
         switch(id){
         case List:return choose(L"列出可手动连接的窗口。列表中的候选窗口不一定是当前自动连接的游戏；实际目标见右侧状态。",L"Choose a window for manual attachment. The active auto-attached target is shown in the status panel.");
         case Refresh:return choose(L"刷新可选择的窗口列表，不改变当前连接。",L"Refresh the window list without changing the active connection.");
@@ -314,7 +318,7 @@ public:
         case Edges:return choose(L"选择左右、上下或全部屏边显示点阵。",L"Choose left/right, top/bottom or all edges.");
         case Appearance:return choose(L"固定颜色、同色相明暗适配、双层描边或组合。亮度适配不会抵消原有渐隐透明度。",L"Choose fixed color, adaptive brightness, two-tone outlines or both. Adaptation preserves alpha fading.");
         case DotColor:case ReticleColor:return choose(L"打开Windows颜色选择器；所选游戏浮层颜色不随软件明暗主题改变。",L"Open the Windows color picker. Overlay colors stay independent of the app theme.");
-        case ReticleShape:return choose(L"选择关闭、十字或菱形十字准星；准星设置三种方案共用。",L"Choose off, cross or diamond-cross. Reticle settings are shared by all styles.");
+        case ReticleShape:return choose(L"点击图标选择准星；准星设置三种方案共用。",L"Click a shape icon to select a reticle. Settings are shared by all dot styles.");
         case ReticleSize:return choose(L"准星大小是中心到端点的长度，完整跨度约为该值的两倍。",L"Size is the center-to-tip length; the full span is approximately twice this value.");
         case DebugParameters:return choose(L"仅控制游戏浮层中的调试可视化，与日志开关独立。",L"Toggle diagnostic visuals in the overlay. This does not enable logging.");
         case RecordLog:return choose(L"每次启动默认关闭。勾选才记录；取消后立即停止并保留已有文件。单文件约10MB、总量100MB、最多20份，超限清理最旧记录。",L"Off at every launch. Check to record; uncheck to stop and keep existing files. About 10 MB per file, 100 MB total, up to 20 files; oldest logs are removed.");
@@ -440,8 +444,9 @@ public:
         child(L"STATIC",L"Background",0,44,646,180,26,0);
         appearanceBox=child(L"COMBOBOX",L"",CBS_DROPDOWNLIST,232,640,328,180,Appearance);
         child(L"STATIC",L"Center reticle",0,44,762,400,26,0);
-        child(L"STATIC",L"Reticle shape",0,44,806,180,26,0);
-        shape=child(L"COMBOBOX",L"",CBS_DROPDOWNLIST,232,800,328,180,ReticleShape);populateShapes(preferences.reticleShape);
+        for(int i=0;i<mc::ReticleShapeCount;++i)
+            reticleButtons[i]=child(L"BUTTON",L"",BS_OWNERDRAW,44+i*65,794,61,44,ReticleFirst+i);
+        populateShapes(preferences.reticleShape);
         reticleOpacity=slider(L"Transparency",844,ReticleOpacity,0,100,0);
         reticleSize=slider(L"Reticle size",886,ReticleSize,mc::ReticleSizeMin,mc::ReticleSizeMax,10);
         child(L"BUTTON",L"Choose reticle color",BS_OWNERDRAW,44,936,516,32,ReticleColor);
@@ -631,10 +636,9 @@ public:
             SetWindowTextW(debugButton,showDebug?(chinese?L"隐藏调试参数":L"Hide debug parameters"):tr(L"Show debug parameters"));
             InvalidateRect(debugButton,nullptr,FALSE);return;
         }
-        if(id==ReticleShape && controlsReady) {
-            int chosen=int(SendMessageW(shape,CB_GETCURSEL,0,0));
-            if(chosen>=0 && chosen<=2)preferences.reticleShape=chosen;
-            overlay.invalidate();
+        if(id>=ReticleFirst && id<ReticleFirst+mc::ReticleShapeCount && controlsReady){
+            preferences.reticleShape=id-ReticleFirst;populateShapes(preferences.reticleShape);
+            overlay.invalidate();markSettings();updateTips();return;
         }
         if(id>=TabRegional && id<=TabStatic) {selectStyle(id-TabRegional);return;}
         if(id==DotColor) chooseColor(dotColor);
@@ -683,6 +687,7 @@ static LRESULT CALLBACK proc(HWND w,UINT m,WPARAM a,LPARAM b) {
         if(m==WM_DRAWITEM) {
             auto d=reinterpret_cast<DRAWITEMSTRUCT*>(b);
             if(d->CtlID==CaptionMinimize||d->CtlID==CaptionClose){UiPaintBuffer buffer(d->hDC,d->rcItem);auto item=*d;item.hDC=buffer.dc();mc::paintCaptionButton(item,d->CtlID==CaptionClose);buffer.present();return TRUE;}
+            if(d->CtlID>=ReticleFirst&&d->CtlID<ReticleFirst+mc::ReticleShapeCount){int shape=int(d->CtlID)-ReticleFirst;mc::fluent::reticleButton(*d,shape==app->preferences.reticleShape,shape,app->chinese);return TRUE;}
             if(d->CtlType==ODT_COMBOBOX){mc::fluent::comboItem(*d);return TRUE;}
             bool selected=(d->CtlID==DebugParameters && app->showDebug)||d->CtlID==Attach||(d->CtlID>=TabRegional&&d->CtlID<=TabStatic&&int(d->CtlID-TabRegional)==app->preferences.selected);
             mc::fluent::button(*d,selected,d->CtlID==Theme?app->preferences.theme:-1);return TRUE;
@@ -690,7 +695,7 @@ static LRESULT CALLBACK proc(HWND w,UINT m,WPARAM a,LPARAM b) {
         if(m==WM_TIMER) { app->tick(); return 0; }
         if(m==WM_COMMAND) {
             int id=LOWORD(a),notification=HIWORD(a);
-            bool combo=id==List||id==ReticleShape||id==Edges||id==Appearance;
+            bool combo=id==List||id==Edges||id==Appearance;
             if(id==0||id==List || (combo?notification!=CBN_SELCHANGE:notification!=BN_CLICKED))return 0;
             app->command(id);return 0;
         }

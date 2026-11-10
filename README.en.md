@@ -4,9 +4,9 @@
 
 MotionCompensator is a Windows visual aid designed to help reduce visually induced motion sickness and discomfort during gaming, using customizable dot references and an optional central reticle. Choose regional scrolling, screen-edge scrolling or a static reference, with separate appearance settings, background brightness adaptation, Chinese/English UI and light/dark themes.
 
-**Windows x64 · 0.1.0-preview.1 preview**
+**Windows x64 · 0.1.0-preview.2 preview**
 
-[Download the preview](https://github.com/gzz312/MotionCompensator/releases/download/v0.1.0-preview.1/MotionCompensator-0.1.0-preview.1-win-x64.zip) · [Release notes and checksums](https://github.com/gzz312/MotionCompensator/releases/tag/v0.1.0-preview.1)
+[Download the preview](https://github.com/gzz312/MotionCompensator/releases/download/v0.1.0-preview.2/MotionCompensator-0.1.0-preview.2-win-x64.zip) · [Release notes and checksums](https://github.com/gzz312/MotionCompensator/releases/tag/v0.1.0-preview.2)
 
 ## Three dot styles
 
@@ -14,9 +14,9 @@ MotionCompensator is a Windows visual aid designed to help reduce visually induc
 - **Screen-edge dots:** larger dots along selected screen edges, using scrolling, fading and size differences to present motion.
 - **Static dots:** a fixed 4×4 reference, with soft halos on the outer columns. Select it through the interface or shortcut.
 
-Adjust dot size, color, transparency and layout independently for each style. Dynamic styles also offer motion strength and direction reversal. The optional reticle supports cross and diamond-cross shapes.
+Adjust dot size, color, transparency and layout independently for each style. Dynamic styles also offer motion strength and direction reversal. The optional reticle uses compact icon buttons for Cross, Diamond cross, Dot, Ring, Open cross, T-shape and Diamond.
 
-## Gameplay demonstration
+## Gameplay demonstration (0.1.0-preview.1)
 
 Three dot styles in PAYDAY 2. Click an image for a larger view. Colors, dot sizes and transparency are adjustable.
 

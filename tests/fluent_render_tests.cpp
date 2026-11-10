@@ -45,6 +45,21 @@ int main(){
     for(int mode:{1,2}){mc::ui::setTheme(mode);for(int i=0;i<60;++i){require(!mc::fluent::setComboOptions(combo,options,i%4),"profile changes retain the existing option table");require(SendMessageW(combo,CB_GETCURSEL,0,0)==i%4&&SendMessageW(combo,CB_GETCOUNT,0,0)==4,"profile selection and options remain valid");SendMessageW(combo,WM_PRINTCLIENT,reinterpret_cast<WPARAM>(dc),PRF_CLIENT);GdiFlush();require(GetPixel(dc,300,15)==mc::ui::palette.surface,"collapsed combo background matches the active theme after profile changes");}}
     auto translated=std::array{L"固定",L"明暗",L"描边",L"组合"};require(mc::fluent::setComboOptions(combo,translated,2),"language changes still rebuild translated options");
     ShowWindow(combo,SW_HIDE);mc::fluent::setComboOptions(combo,options,0);require(!(GetWindowLongPtrW(combo,GWL_STYLE)&WS_VISIBLE),"updating hidden combos never makes them visible");ShowWindow(combo,SW_SHOW);SendMessageW(combo,WM_SETREDRAW,FALSE,0);SendMessageW(combo,CB_SETCURSEL,3,0);require(!mc::fluent::redrawEnabled(combo),"nested selection respects caller redraw suspension");mc::fluent::setComboOptions(combo,translated,1);require(!mc::fluent::redrawEnabled(combo),"option replacement respects caller redraw suspension");SendMessageW(combo,WM_SETREDRAW,TRUE,0);DestroyWindow(combo);
+    auto check=CreateWindowW(L"BUTTON",L"Old label",WS_CHILD|WS_VISIBLE|BS_AUTOCHECKBOX,0,0,300,26,owner,nullptr,wc.hInstance,nullptr);mc::fluent::install(check,mc::fluent::Kind::Check);
+    for(int mode:{1,2}){mc::ui::setTheme(mode);for(auto name:{L"New English label",L"中文标签"}){
+        ValidateRect(check,nullptr);SetWindowTextW(check,name);RECT pending{};
+        require(GetUpdateRect(check,&pending,FALSE),"changing a checkbox label schedules a complete themed repaint");
+        require(mc::fluent::label(check)==name,"checkbox native text remains available to accessibility");
+        SendMessageW(check,WM_PRINTCLIENT,reinterpret_cast<WPARAM>(dc),PRF_CLIENT);GdiFlush();
+        require(GetPixel(dc,290,13)==mc::ui::palette.surface,"translated checkbox retains the correct themed background");
+    }}DestroyWindow(check);
+    auto reticleButton=CreateWindowW(L"BUTTON",L"Reticle",WS_CHILD|BS_OWNERDRAW,0,0,61,44,owner,nullptr,wc.hInstance,nullptr);mc::fluent::install(reticleButton,mc::fluent::Kind::Button);
+    for(int mode:{1,2}){mc::ui::setTheme(mode);for(int shape=0;shape<mc::ReticleShapeCount;++shape)for(bool selected:{false,true}){
+        DRAWITEMSTRUCT item{};item.hwndItem=reticleButton;item.hDC=dc;item.rcItem={0,0,61,36};
+        mc::fluent::reticleButton(item,selected,shape,true);GdiFlush();
+        require(GetPixel(dc,0,0)==mc::ui::palette.surface,"reticle button corners match light/dark surface");
+        require(GetPixel(dc,30,2)==(selected?mc::ui::palette.accent:mc::ui::palette.surface),"reticle selected state has a filled blue background");
+    }}DestroyWindow(reticleButton);
     SelectObject(dc,old);DeleteObject(bitmap);DeleteDC(dc);ReleaseDC(nullptr,screen);DestroyWindow(owner);
     std::cout<<"PASS: 100 profile changes, 60 alternating drag updates, full invalidation, pointer capture, keyboard and rendered progress clearing\n";
 }

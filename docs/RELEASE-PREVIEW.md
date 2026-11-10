@@ -1,56 +1,39 @@
-# 0.1.0-preview.1 预览验证与发布记录
+# 0.1.0-preview.1 — 发布说明 / Release notes
 
-日期：2026-11-08。0.1.0-preview.1已公开发布，标记为Pre-release（预览版），不是稳定版。仓库：https://github.com/gzz312/MotionCompensator。
+2026-11-08发布的首个公开预览版。
 
-[版本发布页](https://github.com/gzz312/MotionCompensator/releases/tag/v0.1.0-preview.1) · [Windows x64预览包](https://github.com/gzz312/MotionCompensator/releases/download/v0.1.0-preview.1/MotionCompensator-0.1.0-preview.1-win-x64.zip)。
+[GitHub Release](https://github.com/gzz312/MotionCompensator/releases/tag/v0.1.0-preview.1) · [Windows x64下载](https://github.com/gzz312/MotionCompensator/releases/download/v0.1.0-preview.1/MotionCompensator-0.1.0-preview.1-win-x64.zip)
 
-## 本轮变更
+## 中文
 
-- 对外预览编号统一为0.1.0-preview.1。此前0.14至0.17系列属于内部开发历史，原始文件及本地Git记录保留；不代表功能回退。
-- 项目采用《MotionCompensator 源码公开与商业集成许可 1.0》，自定义标识为LicenseRef-MotionCompensator-Integration-1.0。允许免费使用、学习、修改与分享，允许注明出处后的商业集成；禁止独立售卖、换皮售卖、简单包装/捆绑售卖，以及单独收费解锁基于本项目的功能。
-- 不为作者设置独立售卖的特殊例外。商业作品的其他独立部分可以闭源；第三方组件保留自身许可。
-- 中文正文为准，英文为说明性摘要。完整LICENSE.txt内置EXE并随Windows包和源码提供，使用说明及README同步摘要。
-- 清单版本也从VERSION自动生成，避免后续出现标题、EXE版本和清单编号不一致。
+- 提供分区滚动、屏边滚动和4×4静态点阵，支持独立外观设置、交错排布、中央留空与背景明暗/描边适配。
+- 通过外部窗口采集、灰度光流和键鼠/手柄输入预测驱动动态点阵。
+- 提供中央准星、中英界面、浅深主题、调试可视化和可选日志。
+- 单EXE包含所需非系统依赖、使用说明、项目许可、设计致谢及第三方声明。
+- 采用根目录LICENSE.txt中的自定义源码公开与商业集成许可。
 
-## 本轮验证
+发布前检查：以UCRT64 GCC15.2和OpenCV4.12静态库完整编译成功，CTest 17/17通过；已检查版本资源、许可嵌入、包内文件一致性及桌面使用说明显示。
 
-| 检查 | 结果 |
-| --- | --- |
-| 新构建目录完整编译 | UCRT64 GCC15.2、现有OpenCV4.12静态安装，成功 |
-| CTest | 17/17通过，包含完整许可资源存在、许可页加载以及第三方声明保留检查 |
-| 完整许可一致性 | 源码LICENSE.txt的完整字节存在于EXE资源中；ZIP内LICENSE.txt与源文件一致 |
-| EXE版本 | FileVersion/ProductVersion为0.1.0-preview.1，预发布标志开启；清单版本0.1.0.1 |
-| 包内容 | EXE、中英START-HERE、中英KNOWN-ISSUES、RELEASE-PREVIEW、LICENSE、PROJECT-NOTICES、THIRD-PARTY-LICENSES、SHA256SUMS共10个文件，包内EXE与已检查版本逐字节一致 |
-| 实际桌面 | 从新版版本目录启动，标题正确；深色使用说明、许可与致谢可显示；完整新许可及第三方声明已加载 |
-| 设置与日志 | 沿用用户已有设置，普通启动未创建logs目录；未调整用户视觉或主题设置 |
-| 版本管理 | 源码与0.1.0-preview.1预览包已公开发布至gzz312/MotionCompensator；本地主分支与GitHub同步，原开发历史及旧版本仍保留 |
+已知限制包括独占全屏遮挡、低纹理/武器遮挡导致运动估计不稳定，以及多显示器、高DPI和键盘导航适配不完整。详见[已知问题](KNOWN-ISSUES.md)。游戏内的视觉舒适度因人而异，软件检查不构成缓解效果证明。
 
-EXE SHA256：`CF3E23678E3E2B3428E1B2D9DB2506557ED46BBD6AB876AF663C7B360A5677E6`。
+## English
 
-发布整理没有修改采集、光流或点阵运动算法；构建与自动检查阶段未操作游戏，不将历史软件自采集计数当作本版重新测量的结果。README后续加入了由用户操作PAYDAY 2采集的实机截图和GIF，仅用于视觉演示。另一台电脑的首次启动、多显示器/高DPI全面回归以及系统性的游戏内缓解效果评估仍未完成。既有边界见KNOWN-ISSUES.md。
+First public preview, released on 2026-11-08.
 
-## 编号约定
+- Regional, Screen-edge and fixed 4x4 Static dots, with separate appearance settings, staggered layouts, a clear center and background brightness/outline adaptation.
+- External window capture, grayscale optical flow and keyboard/mouse/controller input prediction drive dynamic dots.
+- Central reticle, Chinese/English interface, light/dark themes, visual diagnostics and optional logging.
+- A single EXE embeds non-system dependencies, the guide, project license, credits and third-party notices.
+- Custom source-available and commercial integration terms are provided in LICENSE.txt.
 
-本系列的预览修订使用0.1.0-preview.2、0.1.0-preview.3等编号；确认该系列正式发布时使用0.1.0。后续修复和功能版本再按实际范围递增。不会自动因构建而改变版本。
+Release checks: a full build with UCRT64 GCC15.2 and static OpenCV4.12; 17/17 CTest checks passed. Version resources, embedded licenses, archive consistency and desktop guide display were checked.
 
-## 发布位置
+Exclusive fullscreen, low texture and weapon occlusion can affect behavior. Multi-monitor/high-DPI support and keyboard navigation are incomplete; see [known issues](en/KNOWN-ISSUES.md). Software checks do not establish comfort efficacy.
 
-运行目录：`versions/0.1.0-preview.1/`。
-Windows包：`dist/MotionCompensator-0.1.0-preview.1-win-x64.zip`。
-源码备份：`dist/MotionCompensator-0.1.0-preview.1-source.zip`，不含.git历史、日志、构建缓存和旧版产物。
-根目录EXE同步为本版，原0.17.0-preview.1版本文件保留在原版本目录。
+## 校验 / Checksum
 
-许可文本是按项目发布意图整理的自定义条款，尚未经独立法律专业审阅；不声称已验证所有司法地区的可执行性。
+EXE SHA256: `CF3E23678E3E2B3428E1B2D9DB2506557ED46BBD6AB876AF663C7B360A5677E6`.
 
-## GitHub发布与后续说明更新
+本页更新不修改已发布的二进制或归档文件。下载包内的文档为发布时的版本；当前说明以仓库文档和对应Release为准。
 
-- 中文和English README互相切换；六份核心文档提供成对语言入口，软件已有独立语言切换按钮。
-- 新增双语贡献说明，维持完整项目及第三方许可。
-- 清理七个旧构建临时目录，约640 MiB；保留当前构建、版本包、日志、源码、依赖和历史记录。
-- 源码不上传依赖缓存、旧EXE、原始诊断日志或工作区临时文件。
-
-## 旧发布包中的文档快照
-
-已发布的0.1.0-preview.1压缩包和标签保存首次发布时的构建快照。其中“仅本地”“发布准备”等个别措辞描述打包时的阶段，不能作为当前未发布的依据。当前源码与二进制预览均已公开，最新状态说明以本文件和对应Release为准。
-
-本次只更正主分支文档与Release状态说明，不重写旧标签、不替换原EXE/压缩包，也不改变其既有校验值。历史章节中的“当时许可未定”同样不是当前许可状态；当前许可见根目录LICENSE.txt。
+Documentation updates do not change the published executable or archives. Bundled documents reflect their release-time versions; current notes are available in the repository and the corresponding Release.

@@ -8,7 +8,7 @@
 
 The build directory's `desktop_smoke.exe` runs static, regional and edge self-capture checks on an interactive Windows desktop in about 20 seconds, without game input. It explicitly enables diagnostic logs and writes `desktop-smoke-results.txt` plus `logs/`. Normal startup still defaults to logging off.
 
-`MotionCompensator.exe --smoke-test` is one approximately six-second self-capture check. Report failures on noninteractive/restricted desktops honestly; do not hide them by weakening system settings or automatically elevating privileges.
+`MotionCompensator.exe --smoke-test` is one approximately six-second self-capture check. It requires an available interactive Windows desktop; capture may fail in restricted or noninteractive environments.
 
 ## UI regression
 

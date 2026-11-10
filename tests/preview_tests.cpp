@@ -47,6 +47,19 @@ int main() {
     prefs.reticleShape=2;require(mc::buildPreview(mc::visualSettingsFromPreferences(prefs)).reticle.size()==8,"diamond cross remains available");
     prefs.selected=0;prefs.profiles[0].opacity=0;auto hidden=mc::buildPreview(mc::visualSettingsFromPreferences(prefs));require(hidden.dots.empty(),"intentional full transparency remains respected");
     prefs.reticleSize=999;mc::sanitize(prefs);require(prefs.reticleSize==mc::ReticleSizeMax,"UI and settings use one common reticle maximum");
+    for(int shape=0;shape<mc::ReticleShapeCount;++shape){
+        for(float size:{4.f,16.f,64.f}){
+            mc::VisualSettings v;v.style=2;v.opacity=0;v.reticleShape=shape;v.reticleSize=size;
+            auto scene=mc::buildPreview(v,324,272,324,272);auto geometry=mc::buildReticle(shape,{162,136},size);
+            require(scene.reticle.size()==size_t(geometry.lineCount)&&scene.reticleCircles.size()==size_t(geometry.circleCount),"preview uses the production reticle geometry at every size");
+            FillRect(dc,&bounds,brush);paintPreview(dc,{0,0},scene);GdiFlush();int pixelsChanged=0;
+            for(int y=65;y<207;++y)for(int x=90;x<234;++x)if(GetPixel(dc,x,y)!=background)++pixelsChanged;
+            require(shape==0?pixelsChanged==0:pixelsChanged>0,"every enabled reticle produces visible pixels and off stays empty");
+            v.reticleOpacity=0;scene=mc::buildPreview(v);require(scene.reticle.empty()&&scene.reticleCircles.empty(),"transparency hides lines and circles alike");
+        }
+    }
+    auto t=mc::buildReticle(6,{0,0},16);require(t.lineCount==3,"T has three arms");for(int i=0;i<t.lineCount;++i)require(t.lines[i].from.y>=0&&t.lines[i].to.y>=0,"T never draws an upper arm");
+    auto open=mc::buildReticle(5,{0,0},16);require(open.lines[0].to.x < -5,"open cross leaves an unobstructed center");
     SelectObject(dc,old);DeleteObject(bitmap);DeleteObject(brush);DeleteDC(dc);
     std::cout<<"PASS: three preview modes, offscreen GDI pixels, startup cross, saved off/diamond and 4-64 size persistence\n";
 }

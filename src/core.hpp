@@ -75,7 +75,7 @@ struct VisualSettings {
     float radius=3.f,opacity=1.f,spacing=122.f;
     Color dots{},reticle{.2f,1.f,.45f};
     float reticleOpacity=1.f,reticleSize=10.f,holeDiameter=.10f;
-    int reticleShape=1; // 0 off, 1 cross, 2 diamond cross
+    int reticleShape=1; // stable shape IDs are defined in reticle.hpp
     bool operator==(const VisualSettings&) const = default;
 };
 inline float dotVisibility(float x,float y,float w,float h,float radius,float holeDiameter) {

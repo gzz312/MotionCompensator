@@ -4,9 +4,9 @@
 
 MotionCompensator 是一款旨在缓解游戏中的 3D 眩晕与晕动不适的 Windows 视觉辅助工具，通过点阵参照与可选的中央准星，帮助改善游玩时的视觉体验。提供分区滚动、屏边滚动和静态三种方案，可分别调整外观，支持背景明暗适配、中英界面及明暗主题。
 
-**Windows x64 · 0.1.0-preview.1 预览版**
+**Windows x64 · 0.1.0-preview.2 预览版**
 
-[下载预览版](https://github.com/gzz312/MotionCompensator/releases/download/v0.1.0-preview.1/MotionCompensator-0.1.0-preview.1-win-x64.zip) · [发布说明与校验文件](https://github.com/gzz312/MotionCompensator/releases/tag/v0.1.0-preview.1)
+[下载预览版](https://github.com/gzz312/MotionCompensator/releases/download/v0.1.0-preview.2/MotionCompensator-0.1.0-preview.2-win-x64.zip) · [发布说明与校验文件](https://github.com/gzz312/MotionCompensator/releases/tag/v0.1.0-preview.2)
 
 ## 三种点阵方案
 
@@ -14,9 +14,9 @@ MotionCompensator 是一款旨在缓解游戏中的 3D 眩晕与晕动不适的 
 - **屏边点阵**：在选定屏幕边缘显示较大的圆点，通过滚动、渐隐和大小差异呈现运动。
 - **静态点阵**：固定4×4参考点，左右外列带柔边外圈。可通过界面或快捷键选择。
 
-点大小、颜色、透明度和布局可调，三种方案分别保存设置。动态方案还可调整运动强度及反转方向；中央准星支持十字和菱形十字。
+点大小、颜色、透明度和布局可调，三种方案分别保存设置。动态方案还可调整运动强度及反转方向；中央准星通过横排图标按钮切换，支持十字、菱十字、圆点、圆环、留空十字、T形和菱形。
 
-## 实机演示
+## 实机演示（0.1.0-preview.1）
 
 《收获日2》中的三种点阵效果，点击图片可查看大图。颜色、点大小和透明度均可按喜好调整。
 

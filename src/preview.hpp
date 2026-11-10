@@ -1,6 +1,7 @@
 #pragma once
 #include "dots.hpp"
 #include "appearance.hpp"
+#include "reticle.hpp"
 namespace mc {
 struct PreviewDot {Vec2 position;float radius,opacity;Color color{};};
 struct PreviewLine {Vec2 from,to;};
@@ -8,6 +9,7 @@ struct PreviewScene {
     Color dotColor{},reticleColor{};float reticleOpacity=1;
     std::vector<PreviewDot> dots;
     std::vector<PreviewLine> reticle;
+    std::vector<ReticleCircle> reticleCircles;
     int width=324,height=272;
     float contentLeft=0,contentTop=0,contentRight=324,contentBottom=272;
 };
@@ -36,8 +38,9 @@ inline PreviewScene buildPreview(const VisualSettings& settings,int w=324,int h=
     }
     if(settings.reticleShape>0 && settings.reticleOpacity>0) {
         float x=w*.5f,y=h*.5f,a=std::max(4.f,std::clamp(settings.reticleSize,float(ReticleSizeMin),float(ReticleSizeMax))*scale);
-        result.reticle={{{x-a,y},{x-1,y}},{{x+1,y},{x+a,y}},{{x,y-a},{x,y-1}},{{x,y+1},{x,y+a}}};
-        if(settings.reticleShape==2) {result.reticle.push_back({{x,y-a},{x+a,y}});result.reticle.push_back({{x+a,y},{x,y+a}});result.reticle.push_back({{x,y+a},{x-a,y}});result.reticle.push_back({{x-a,y},{x,y-a}});}
+        auto geometry=buildReticle(settings.reticleShape,{x,y},a);
+        for(int i=0;i<geometry.lineCount;++i)result.reticle.push_back({geometry.lines[i].from,geometry.lines[i].to});
+        for(int i=0;i<geometry.circleCount;++i)result.reticleCircles.push_back(geometry.circles[i]);
     }
     return result;
 }
