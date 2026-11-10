@@ -1,3 +1,4 @@
+#include "reticle.hpp"
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -10,7 +11,7 @@ namespace mc {
 void sanitize(Preferences& v) {
     auto bound=[](float x,float lo,float hi,float fallback){return std::clamp(std::isfinite(x)?x:fallback,lo,hi);};
     auto color=[&](Color& c){c.r=bound(c.r,0,1,1);c.g=bound(c.g,0,1,1);c.b=bound(c.b,0,1,1);};
-    v.theme=std::clamp(v.theme,0,2);v.selected=std::clamp(v.selected,0,2);v.reticleShape=std::clamp(v.reticleShape,0,2);
+    v.theme=std::clamp(v.theme,0,2);v.selected=std::clamp(v.selected,0,2);v.reticleShape=std::clamp(v.reticleShape,0,ReticleShapeCount-1);
     v.reticleOpacity=bound(v.reticleOpacity,0,1,1);v.reticleSize=bound(v.reticleSize,ReticleSizeMin,ReticleSizeMax,10);color(v.reticleColor);
     for(size_t i=0;i<v.profiles.size();++i) {
         auto& p=v.profiles[i];p.enhancement=i==1;

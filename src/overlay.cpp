@@ -1,3 +1,4 @@
+#include "reticle.hpp"
 #include "overlay.hpp"
 #include "debug_visual_d2d.hpp"
 #include <d2d1_1helper.h>
@@ -98,11 +99,10 @@ bool Overlay::draw(RECT rect,const mc::VisualSettings& settings,const std::array
     }
     if(clippedRegion>=0) context_->PopAxisAlignedClip();
     if(settings.reticleShape) {
-        float cx=w*.5f,cy=h*.5f,a=settings.reticleSize;
+        auto geometry=mc::buildReticle(settings.reticleShape,{w*.5f,h*.5f},settings.reticleSize);
         brush_->SetColor(D2D1::ColorF(settings.reticle.r,settings.reticle.g,settings.reticle.b,settings.reticleOpacity));
-        auto line=[&](float x,float y,float xx,float yy){context_->DrawLine(D2D1::Point2F(x,y),D2D1::Point2F(xx,yy),brush_.Get(),1.3f);};
-        line(cx-a,cy,cx-2,cy);line(cx+2,cy,cx+a,cy);line(cx,cy-a,cx,cy-2);line(cx,cy+2,cx,cy+a);
-        if(settings.reticleShape==2) {line(cx,cy-a,cx+a,cy);line(cx+a,cy,cx,cy+a);line(cx,cy+a,cx-a,cy);line(cx-a,cy,cx,cy-a);}
+        for(int i=0;i<geometry.lineCount;++i){auto line=geometry.lines[i];context_->DrawLine(D2D1::Point2F(line.from.x,line.from.y),D2D1::Point2F(line.to.x,line.to.y),brush_.Get(),1.3f);}
+        for(int i=0;i<geometry.circleCount;++i){auto circle=geometry.circles[i];auto ellipse=D2D1::Ellipse(D2D1::Point2F(circle.center.x,circle.center.y),circle.radius,circle.radius);if(circle.filled)context_->FillEllipse(ellipse,brush_.Get());else context_->DrawEllipse(ellipse,brush_.Get(),1.3f);}
     }
     if(debugEnabled_)drawDebugVisual(w,h);
     check(context_->EndDraw(),"Draw overlay");

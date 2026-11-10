@@ -14,155 +14,129 @@ inline const wchar_t* usageText(bool chinese) {
     return chinese?LR"(MotionCompensator 使用说明
 
 版本与使用范围
-预览测试版，采用自定义源码公开与商业集成许可。本工具用于个人体验对照，不保证缓解效果。
-已知限制：独占全屏可能遮住浮层；复杂光照、手持武器遮挡、切镜和运动模糊会影响观测；键鼠预测不代表角色真实状态；多屏与高DPI尚未完成全面验证。
+MotionCompensator 是一款旨在缓解游戏中 3D 眩晕与晕动不适的 Windows 视觉辅助工具。它通过可调节的点阵和中央准星提供视觉参照。当前为预览版，体验因人和游戏而异，不保证缓解效果；出现不适时请停止使用。
 
 开始使用
-1. 先退出其他版本，再启动本程序，避免浮层重复或快捷键冲突。
-2. 启动游戏。勾选“自动识别前台游戏”后，切回已支持的游戏即可连接。
-3. 也可点击“刷新窗口”，在列表中选择游戏，再点击“选择此窗口”。手动选择后会关闭自动识别。
-4. 切回游戏查看效果；切出游戏时浮层会隐藏。建议先用无边框或窗口模式测试，独占全屏可能遮住外部浮层。
+1. 退出其他正在运行的版本，然后启动 MotionCompensator.exe。
+2. 启动游戏，优先使用无边框或窗口模式。独占全屏可能遮住浮层。
+3. 勾选“自动识别前台游戏”，切回已识别的游戏即可自动连接。也可点击“刷新窗口”，从列表选择游戏，再点击“选择此窗口”。手动连接会关闭自动识别。
+4. 选择点阵方案并调整外观，切回游戏查看效果。浮层仅在目标游戏位于前台时显示。
+5. 顶部“中文 / English”按钮切换界面语言；主题按钮依次切换跟随系统、浅色和深色。界面主题不影响游戏中的点阵与准星颜色。
 
 三种点阵方案
-分区点阵：九宫格分别持续滚动，适合比较局部画面运动。
-屏边点阵：仅在左右、上下或四周边缘显示；宽范围渐显渐隐，邻点大小固定交替；主要靠透明度消失，只在很淡的尾段轻微缩小。
-屏边点大小范围为1–64，内置初始预设为30，已有用户设置优先保留；其他两种方案范围保持1–24。
-屏边“点大小”作为参考大小，大点约为其1.2倍，小点再乘0.72；只在已经很淡的尾段才轻微缩小，最多缩小15%。
-反向转视角只改变滚动方向，不重新分配大小或把点移到另一侧。
-静态点阵：固定4×4共16点，左右外列带柔边外圈，内两列只保留小亮点；只通过手动选择进入。
-静态方案的“排布展开”调整16点的整体展开范围，不增加或减少点数。
-三种方案分别保存点阵大小、透明度、间距、颜色等设置，中央准星共用。
+分区点阵：不同区域的点阵根据画面运动和输入预测持续滚动，可调整中央留空与区域边界淡化。
+屏边点阵：在左右、上下或四周边缘显示较大的圆点，以滚动、渐隐和相邻点的大小差异呈现运动。
+静态点阵：固定的4×4共16个参考点，左右外列带柔边外圈，内两列为小亮点。“排布展开”调整整体展开范围，点数保持不变。
+三种方案分别保存点阵外观设置。动态方案不会自动切换为静态；可通过方案按钮或快捷键自行切换。
 
 外观和运动设置
-顶部主题图标：点击依次切换跟随系统、浅色、深色；主题选择自动保存，只影响设置软件，不改变游戏点阵与准星颜色。
-“背景适配”：固定颜色、同色相明暗、同色相双层描边，或明暗与描边组合；每个方案独立保存。
-明暗模式保留所选色相，根据点附近的灰度背景柔和调整亮度；约10Hz更新，带滞回和平滑限速。
-双层描边为外暗内亮，不改变滚动与消失透明度。预览使用明暗渐变背景，方便比较。
-静态明暗适配模式采集背景亮度，但不计算光流；采集尚未建立或停止时采用中性亮度；画面没有变化、不产生新帧时保留最近背景亮度。
-“运动强度”和“反转运动方向”已移入各动态方案设置区域，静态方案不显示。
-“点阵交错”：相邻行错开半个点距，不改变滚动速度；各方案分别保存。
-“边界淡化”：分区交界处轻微淡入淡出，不改变运动范围。
-“中央留空”：调整中央不显示点阵的圆形区域，避开游戏原有准星。
-屏边方案的同一滑块改为“边缘带宽”。
-“透明度”：0% 最明显，100% 完全透明；准星透明度单独调整。
-有移动/转视角输入时优先采用覆盖较广的背景运动，输入停止后平滑回到局部光流。
-全局背景是同一批灰度观测的运动模型，不是游戏引擎数据；精细采样一直保留。
-模型不可靠时继续使用局部观测或输入预测，不强行让所有区域移动。
-“运动强度”：调整动态点阵速度；“反转运动方向”改变方向，可用于个人对照。
-中央准星可关闭，或选择十字、菱形十字，调整颜色、透明度和大小。
-准星大小表示中心到端点的长度，完整跨度约为该数值的两倍。
-右侧预览用于查看排布、颜色与准星，不模拟游戏中的动态运动。
+“点大小”“透明度”“点间距”与颜色按钮用于调整点阵外观。透明度0%为完全可见，100%为完全透明。屏边点大小范围为1–64，其他方案为1–24。
+“中央留空”调整画面中央圆形留空范围；屏边方案中对应控件为“边缘带宽”，用于调整点阵所在的屏边区域。
+“点阵交错”使相邻行错开排列；“边界淡化”柔化分区点阵交界处的出现和消失。
+动态方案的“运动强度”调整滚动速度，“反转运动方向”切换滚动方向。这些设置可分别保存。
+“背景适配”可选择固定颜色、同色相明暗、同色相双层描边或两者组合。明暗适配根据点附近的背景柔和调整亮度，双层描边采用外暗内亮的同色相轮廓。
+右侧预览显示排布、颜色和准星，并提供明暗背景对照。动态滚动效果请在游戏中查看。
+
+中央准星
+点击横排图标选择关闭、十字、菱十字、圆点、圆环、留空十字、T形或菱形。蓝色按钮表示当前选择，悬停可查看名称与提示。
+准星颜色、透明度和大小由下方控件调整，三种点阵方案共用并自动保存。
+十字保留细小中心间隙；留空十字与T形留出更大的中心空间，T形不绘制上臂。菱十字由十字与菱形组成，菱形仅显示外轮廓。
+大小表示线形或轮廓准星从中心到端点或外缘的距离，完整跨度约为该值的两倍。圆点半径约为该值的18%，最小1像素。
+准星固定在屏幕中心，不跟随后坐力，也不表示实际弹着位置。
 
 调试可视化
-点击右下角“显示调试参数”，再切回游戏查看左上角面板；再次点击统一隐藏。
-蓝箭头：输入预测；黄箭头：实际用于驱动的光流；紫箭头：融合运动；绿箭头：点阵运动。
-箭头越长表示速度越大，显示标尺在 600 px/s 封顶，不限制实际点阵速度。
-可信度色条表示画面观测可靠程度；灰短线和 N/A 表示数据不可用。
-趋势图显示最近 10 秒的采集、分析、提交频率，CPU 光流、融合、绘制耗时，以及原始光流速度。
-“原始光流速度”可包含未被补偿采用的低可信度观测；没有新鲜数据时断线，零速度才显示零。
-面板上方会区分暂无结果、结果过期、可信度不足和光流可用于补偿。
-这里的 FPS 不是游戏实际帧率；CPU 耗时不是 GPU 完成时间或屏幕呈现延迟。
-“日志”位于调试按钮旁，和调试可视化独立。每次启动默认关闭，不记忆开启状态。
-勾选后才在程序旁logs目录记录，取消后立即停止并保留已有文件；不会上传。
-单文件约10MB，当前日志目录总量100MB、最多20份，超限时清理最旧的session日志。
-记录失败时开关变红并取消勾选，悬停可查看原因。
+点击“显示调试参数”后，切回游戏查看面板；再次点击可隐藏。
+蓝色箭头表示输入预测，黄色表示用于驱动的光流，紫色表示融合运动，绿色表示点阵运动。箭头长度反映速度，显示长度设有上限，不限制实际滚动速度。
+可信度条表示画面观测的可靠程度；N/A和曲线断线表示相应数据不可用。趋势图显示最近10秒的处理频率、耗时与原始光流速度。
+面板中的FPS是采集、分析或渲染提交频率，不是游戏帧率；CPU耗时也不等于屏幕最终呈现延迟。
+“日志”与调试显示独立，每次启动默认关闭。需要反馈问题时勾选，复现后取消。日志保存在程序旁的logs目录，不会自动上传；分享前请检查进程信息等本地内容。
+日志约10MB一份，目录上限100MB、最多20份，达到上限后清理最旧的会话日志。记录失败时开关变红并取消勾选，悬停可查看原因。
 
 快捷键
-Ctrl+Alt+F8：依次切换分区点阵、屏边点阵、静态点阵。
+Ctrl+Alt+F8：切换分区点阵、屏边点阵和静态点阵。
 Ctrl+Alt+F9：显示或隐藏浮层。
-Ctrl+Alt+F10：停止采集并关闭自动连接；需要时重新选择窗口或勾选自动识别。
+Ctrl+Alt+F10：停止采集并关闭自动连接；再次使用时选择游戏窗口或重新勾选自动识别。
 
 常见情况
-点阵不显示：确认目标是游戏窗口、已开启“显示浮层”、透明度不是 100%，并切回目标游戏。
-快捷键无效：先退出其他版本，或直接使用窗口中的按钮。
-纯色墙、强烈运动模糊、切镜头等情况下光流可能无效，不能把采样点数当成有效观测数。
-0.12 使用 960×540 灰度画面和 9×9 分析网格，最终点阵显示仍为九宫格；尚未接入 RGB 或 AI。
-键鼠输入是动作意图的预测，不等于角色真实速度；跳跃、顶墙和过场的精确状态识别仍待完善。
-如果感觉辅助画面干扰，可降低运动强度、提高透明度，或手动选择静态方案作对照。
-设置自动保存到 Windows 当前用户配置（HKCU\\Software\\MotionCompensator），程序旁不再生成 settings.ini。
-运行只需EXE。只有主动勾选日志时才创建logs目录。依赖、初始配置、说明与第三方许可均内置。
-橙色表示快捷键冲突或暂时观测不足，红色表示采集、日志等异常；悬停相关控件查看详情。
-每个控件都可悬停查看用途；问题恢复后提示和颜色自动恢复。快捷键占用时窗口按钮仍可使用，程序会自动重试注册。
-本工具不修改游戏，不使用 Hook、DLL 注入或游戏进程内存读取；主观缓解效果需自行比较。
+点阵不显示：检查连接目标、“显示浮层”、透明度和游戏窗口模式，并确认目标游戏在前台。
+快捷键无效：退出其他版本或占用快捷键的程序，也可使用窗口中的按钮。软件会自动重试注册快捷键。
+橙色提示表示快捷键冲突或观测不足，红色提示表示采集、日志等异常。悬停相关控件可查看详情。
+纯色墙、运动模糊、切镜或武器/HUD遮挡可能影响运动估计。输入预测表示操作意图，不能准确判断跳跃、顶墙或过场等角色状态；当前没有自动识别CG并隐藏浮层的功能。
+多显示器、高DPI和完整Tab导航尚未全面适配。使用前请确认目标游戏允许外部浮层。
+设置自动保存到当前Windows用户配置。运行只需EXE，无需安装OpenCV、编译器或额外程序DLL。
+问题反馈：https://github.com/gzz312/MotionCompensator/issues
 
 设计参考、致谢与许可
-屏边点阵设计思路与创意参考 shsr07（拾荒散人）的 MotionStabilizer，感谢作者的分享与交流。
+屏边点阵的视觉设计参考了shsr07（拾荒散人）的MotionStabilizer，感谢作者分享设计思路与创意。
 项目：https://github.com/shsr07/MotionStabilizer
 作者视频：https://www.bilibili.com/video/BV1saKg6XEvg/
-交错与周期连续性思路参考 MotionCues：https://github.com/mcpeixoto/MotionCues
-视觉锚点产品参考 Peregrine：https://github.com/Eeymoo/peregrine
-经当前源码对比，未发现直接代码复制；检查有范围限制。致谢不代表原作者参与开发或为效果背书。
-允许免费使用、学习、修改和分享；允许商业集成，但需注明 MotionCompensator、作者 gzz312、可用来源地址，并保留完整许可。
-禁止独立售卖、换皮售卖、付费插件及单独收费解锁本项目功能；简单包装或捆绑不构成商业集成。
-本项目采用自定义源码公开许可，不是标准开源许可；第三方组件按各自许可使用。完整规则见“许可与致谢”。
+交错排布与周期连续性参考MotionCues：https://github.com/mcpeixoto/MotionCues
+视觉锚点设计参考Peregrine：https://github.com/Eeymoo/peregrine
+上述项目提供了设计参考；源码比对未发现直接代码复制，具体比对范围见项目仓库的设计参考记录。
+本项目采用自定义源码公开与商业集成许可：允许免费使用、学习、修改和分享，允许符合许可条件的署名商业集成；禁止独立售卖、换皮售卖和单独收费解锁本项目功能。
+完整条款见“许可与致谢”，以许可中文正文为准。第三方组件保留各自许可。
 )":LR"(MotionCompensator User Guide
 
 Preview status
-Preview under a custom source-available and commercial integration license. Comfort effects vary and are not guaranteed.
-Exclusive fullscreen can hide overlays. Occlusion, cuts and blur can reduce observation quality. Input prediction is not the character's actual state. Multi-monitor and high-DPI testing is incomplete.
+MotionCompensator is a Windows visual aid designed to help reduce motion discomfort during gaming, using customizable dots and a central reticle as visual references. This is a preview. Experiences vary by person and game, and relief is not guaranteed. Stop if discomfort develops.
 
 Getting started
-1. Exit other versions before starting this one to avoid duplicate overlays and hotkey conflicts.
-2. Enable automatic foreground-game detection, then return to a supported game.
-3. Alternatively, refresh the window list, select the game and click Attach selected. Manual attachment disables automatic detection.
-4. The overlay appears over the selected foreground game and hides when you switch away. Try borderless or windowed mode first; exclusive fullscreen may cover external overlays.
+1. Close other running versions, then launch MotionCompensator.exe.
+2. Start a game, preferably in borderless or windowed mode. Exclusive fullscreen may hide the overlay.
+3. Enable automatic foreground-game detection and return to a recognized game. Alternatively, refresh the window list, select the game and click Attach selected. Manual attachment disables automatic detection.
+4. Choose a dot style and adjust its appearance. Return to the game to view the overlay, which is visible only when the target game is in the foreground.
+5. Use 中文 / English to switch language. The theme button cycles system, light and dark themes without changing overlay colors.
 
 Styles and settings
-Theme icon: click to cycle system (sun/moon), light (sun), dark (moon). Saved independently of game overlay colors.
-Background adaptation: fixed color, adaptive same-hue brightness, two-tone outline, or both. Saved per style.
-Brightness updates at about 10Hz with hysteresis, smoothing and a rate limit. Alpha fading remains independent.
-Static adaptive-brightness mode captures background brightness without running optical flow. Unchanged frames retain the last brightness sample; unavailable capture uses neutral brightness.
-Motion strength and reverse direction live in each dynamic style panel.
-Screen-edge reference size: 1-64; bundled initial preset: 30. Existing user values are preserved. Other styles retain 1-24.
-Regional dots: nine independently scrolling display regions.
-Screen-edge dots: left/right, top/bottom or all edges, with broad fades and stable alternating neighbour sizes. Most travel keeps a constant size; only the already faint tail shrinks by up to 15%. Reversing input retraces the same positions and does not swap the size distribution.
-Static dots: fixed 4x4 (16 dots), with soft halos only on the two outer columns. Spacing adjusts spread without changing count; entered only by manually selecting it.
-Each style saves its own dot settings. The center reticle is shared.
-Staggered dots offset alternating rows by half a spacing without changing scrolling speed.
-Boundary fade slightly softens regional borders without reducing movement range.
-Clear center reserves a circular area around the game crosshair. In edge mode this slider controls strip width.
-Transparency: 0% fully visible; 100% hidden. Reticle transparency is separate.
-Movement/look input smoothly prioritizes a broad background-motion model. After input stops, local flow gradually regains control. Fine observations remain active throughout; no game-engine data is read. Unreliable background models are not forced.
-Motion strength changes scrolling speed. Reverse direction provides a direction comparison.
-Choose an off/cross/diamond reticle, color, transparency and size. Size is the center-to-tip distance, about half the full span.
-The settings preview shows layout and appearance, not simulated dynamic gameplay.
+Regional dots: independently scrolling regions driven by observed motion and input prediction, with a clear center and optional boundary fading.
+Screen-edge dots: larger dots along the left/right, top/bottom or all edges, using scrolling, fading and alternating sizes to present motion.
+Static dots: a fixed 4x4 reference with sixteen dots, soft halos on the outer columns and small dots in the inner columns. Pattern spread changes the layout's extent without changing the count.
+Each style saves its own dot appearance. Dynamic styles never switch to Static automatically; select a style through its button or the shortcut.
+Dot size, transparency, spacing and color control appearance. Transparency is fully visible at 0% and hidden at 100%. Screen-edge size ranges from 1 to 64; other styles range from 1 to 24.
+Clear center adjusts the central circular gap. In Screen-edge mode, Edge width controls the strip occupied by the dots.
+Staggered dots offset alternating rows. Boundary fade softens the appearance and disappearance of dots at regional borders.
+Each dynamic style has its own motion strength and direction-reversal settings.
+Background adaptation offers fixed color, same-hue brightness, a two-tone outline, or both. Brightness follows the nearby background smoothly; outlines use a darker outer and lighter inner edge.
+The preview shows layout, color and reticle appearance against a light/dark background. View dynamic scrolling in the game.
+
+Center reticle
+Click an icon to select Off, Cross, Diamond cross, Dot, Ring, Open cross, T-shape or Diamond. Blue marks the current selection; hover for its name and help.
+The color, transparency and size controls are shared across dot styles and saved automatically.
+Cross has a small center gap. Open cross and T-shape have wider gaps; T-shape omits the top arm. Diamond cross combines a cross and diamond, while Diamond shows only the outline.
+Size is the center-to-tip or outer-edge distance for line/outline shapes, approximately half the full span. Dot radius is about 18% of that value, with a one-pixel minimum.
+The reticle is fixed at the screen center. It does not follow recoil or indicate actual bullet impact.
 
 Visual diagnostics
-Click Show debug parameters, then return to the game. Click again to hide everything.
-Blue arrows: input prediction. Yellow: flow selected for driving. Purple: fused motion. Green: dot motion.
-Arrow length represents speed with a visual cap of 600 px/s; this does not cap actual scrolling.
-Confidence bars indicate observation reliability. Grey dashes and N/A mean unavailable data.
-Graphs show ten seconds of capture/analysis/submit rates, CPU costs and raw flow speed.
-Raw speed may include low-confidence observations; missing or expired observations leave gaps. State labels distinguish no result, expired, low confidence and ready for fusion.
-These rates are not the game's FPS. CPU timings are not GPU completion or display latency.
-Log is independent of debug visuals and is off at every launch. Check it to record; uncheck it to stop and retain existing files. Nothing is uploaded.
-Logs are limited to about 10 MB per file, 100 MB total and 20 files in the current log directory; oldest session logs are removed. A recording error unchecks and colors the control red; hover for details.
+Click Show debug parameters and return to the game. Click again to hide the panel.
+Blue arrows show input prediction, yellow shows flow used for driving, purple shows fused motion and green shows dot motion. Arrow length represents speed, with a display limit that does not cap actual scrolling.
+Confidence bars indicate observation reliability. N/A and gaps in graphs indicate unavailable data. Graphs show ten seconds of processing rates, CPU times and raw flow speed.
+Panel FPS values are capture, analysis or render-submission rates, not the game's frame rate. CPU timings are not final display latency.
+Log is independent of the panel and is off at each launch. Enable it to reproduce a problem, then disable it. Files are saved beside the EXE in logs/ and are not uploaded automatically. Review process information and other local details before sharing.
+Logs are limited to approximately 10 MB per file, 100 MB total and twenty files. Oldest session logs are removed at the limit. A recording failure unchecks and colors the control red; hover for the reason.
 
 Hotkeys
-Ctrl+Alt+F8: cycle Regional, Screen-edge and Static styles.
-Ctrl+Alt+F9: show/hide overlay.
-Ctrl+Alt+F10: stop capture and automatic attachment. Reattach or enable auto detection to resume.
+Ctrl+Alt+F8: cycle Regional, Screen-edge and Static dots.
+Ctrl+Alt+F9: show or hide the overlay.
+Ctrl+Alt+F10: stop capture and automatic attachment. Select a game window or re-enable auto detection to resume.
 
 Troubleshooting and limits
-If no dots appear, check the selected game, Show overlay, transparency, focus and fullscreen mode.
-If hotkeys fail, exit other versions or use panel controls. Shortcut registration is retried automatically.
-Amber indicates a shortcut conflict or insufficient observations; red indicates capture or recording errors. Hover over controls for normal explanations or current error details. Recovery restores normal colors.
-Uniform walls, blur and camera cuts can invalidate optical flow; sampling positions are not guaranteed valid tracks.
-Version 0.12 analyzes 960x540 grayscale frames in 9x9 cells and outputs the original nine display regions. RGB and AI are not connected.
-Input prediction represents intent rather than real character velocity. Exact jumping, wall blocking and cutscene states are still being improved.
-Settings are saved to the current Windows user profile (HKCU/Software/MotionCompensator). No settings.ini is created beside the EXE. Dependencies, initial settings, guide and third-party notices are embedded; the logs directory is created only when recording is explicitly enabled.
-This tool does not modify the game or use hooks, DLL injection or game process memory reading. Subjective comfort must be assessed separately.
+No dots: check the target window, Show overlay, transparency, window mode and whether the target game is in the foreground.
+Shortcut unavailable: close other versions or the app using the shortcut, or use the panel buttons. Registration is retried automatically.
+Amber indicates a shortcut conflict or insufficient observations. Red indicates a capture or logging error. Hover over the relevant control for details.
+Uniform walls, blur, camera cuts and weapon/HUD occlusion can affect motion estimation. Input prediction represents intent and cannot precisely determine jumping, wall blocking or cutscene states. Automatic cutscene detection and overlay hiding are not available.
+Multi-monitor/high-DPI support and full Tab navigation are incomplete. Check that the target game permits external overlays.
+Settings are saved to the current Windows user profile. Only the EXE is needed to run; no separate OpenCV, compiler or application DLL installation is required.
+Report problems at https://github.com/gzz312/MotionCompensator/issues
 
 Design references and license
-Screen-edge visual design ideas were inspired by shsr07 (拾荒散人)'s MotionStabilizer. Thanks for the author's sharing and discussion.
-https://github.com/shsr07/MotionStabilizer
-Author video: https://www.bilibili.com/video/BV1saKg6XEvg/
-Staggered/periodic layout ideas: https://github.com/mcpeixoto/MotionCues
-Visual-anchor product reference: https://github.com/Eeymoo/peregrine
-The current source comparison found no direct code copying; this is a bounded review. References do not imply author participation or endorsement.
-Free use, study, modification and sharing are permitted. Commercial integration into a larger work is permitted with credit to MotionCompensator and gzz312, an available source address, and the full license.
-Standalone sale, paid rebrands/plugins and separate paid unlocks of project-based functionality are prohibited. Simple wrappers or bundles do not qualify as integration.
-This is a custom source-available license, not a standard open-source license. Third-party components retain their own licenses. See Licenses & credits for the full Chinese governing terms and English summary.
+The screen-edge visual design draws on shsr07 (拾荒散人)'s MotionStabilizer. Thanks to the author for sharing the ideas.
+Project: https://github.com/shsr07/MotionStabilizer
+Author's video: https://www.bilibili.com/video/BV1saKg6XEvg/
+Staggered-layout and periodic-continuity reference: https://github.com/mcpeixoto/MotionCues
+Visual-anchor reference: https://github.com/Eeymoo/peregrine
+These projects informed the visual design. Source comparison found no direct code copying; the repository's design-reference record documents the comparison scope.
+The custom source-available and commercial integration license permits free use, study, modification and sharing, plus commercial integration with attribution subject to its conditions. Standalone sale, paid rebrands and separate paid unlocks of project-based functionality are prohibited.
+See Licenses & credits for the complete terms; the Chinese license text governs. Third-party components retain their own licenses.
 )";
 }
 // Normalize both embedded LF and Windows CRLF without producing CR-CR-LF.
@@ -213,7 +187,7 @@ class UsageWindow {
             CHARFORMAT2W format{};format.cbSize=sizeof(format);format.dwMask=CFM_COLOR|CFM_SIZE|CFM_BOLD;format.crTextColor=fluent::ink;format.yHeight=280;SendMessageW(body_,EM_SETCHARFORMAT,SCF_ALL,reinterpret_cast<LPARAM>(&format));
             PARAFORMAT2 paragraph{};paragraph.cbSize=sizeof(paragraph);paragraph.dwMask=PFM_SPACEAFTER;paragraph.dySpaceAfter=100;SendMessageW(body_,EM_SETPARAFORMAT,0,reinterpret_cast<LPARAM>(&paragraph));
             if(!notices){
-                for(const auto* title:{L"MotionCompensator 使用说明",L"MotionCompensator User Guide",L"开始使用",L"三种点阵方案",L"外观和运动设置",L"调试可视化",L"快捷键",L"常见情况",L"版本与使用范围",L"设计参考、致谢与许可",L"Preview status",L"Design references and license",L"Getting started",L"Styles and settings",L"Visual diagnostics",L"Hotkeys",L"Troubleshooting and limits"}){
+                for(const auto* title:{L"MotionCompensator 使用说明",L"MotionCompensator User Guide",L"开始使用",L"三种点阵方案",L"外观和运动设置",L"中央准星",L"Center reticle",L"调试可视化",L"快捷键",L"常见情况",L"版本与使用范围",L"设计参考、致谢与许可",L"Preview status",L"Design references and license",L"Getting started",L"Styles and settings",L"Visual diagnostics",L"Hotkeys",L"Troubleshooting and limits"}){
                     FINDTEXTEXW find{};find.chrg={0,-1};find.lpstrText=const_cast<wchar_t*>(title);
                     while(SendMessageW(body_,EM_FINDTEXTEXW,FR_DOWN,reinterpret_cast<LPARAM>(&find))>=0){
                         wchar_t before[2]{},after[2]{};TEXTRANGEW range{{std::max(0L,find.chrgText.cpMin-1),find.chrgText.cpMin},before};SendMessageW(body_,EM_GETTEXTRANGE,0,reinterpret_cast<LPARAM>(&range));range={{find.chrgText.cpMax,find.chrgText.cpMax+1},after};SendMessageW(body_,EM_GETTEXTRANGE,0,reinterpret_cast<LPARAM>(&range));

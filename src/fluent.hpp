@@ -3,6 +3,7 @@
 #include "ui_paint.hpp"
 #include "theme.hpp"
 #include "health.hpp"
+#include "reticle.hpp"
 #include <commctrl.h>
 #include <uxtheme.h>
 #include <gdiplus.h>
@@ -29,13 +30,28 @@ inline bool hovered(HWND window){DWORD_PTR ref=0;return GetWindowSubclass(window
 inline bool redrawEnabled(HWND w){DWORD_PTR ref=0;return !GetWindowSubclass(w,proc,1,&ref)||reinterpret_cast<State*>(ref)->redraw;}
 inline Severity severity(HWND w){DWORD_PTR ref=0;return GetWindowSubclass(w,proc,1,&ref)?reinterpret_cast<State*>(ref)->severity:Severity::Normal;}
 inline void setSeverity(HWND w,Severity value){DWORD_PTR ref=0;if(w&&GetWindowSubclass(w,proc,1,&ref)){auto state=reinterpret_cast<State*>(ref);if(state->severity!=value){state->severity=value;InvalidateRect(w,nullptr,FALSE);}}}
-inline void buttonContent(const DRAWITEMSTRUCT& d,bool selected,int themeIcon=-1){
+inline void buttonContent(const DRAWITEMSTRUCT& d,bool selected,int themeIcon=-1,int reticleIcon=-1,bool chinese=true){
     initialize();HDC dc=d.hDC;Gdiplus::Graphics g(dc);g.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
     float h=float(d.rcItem.bottom-d.rcItem.top),scale=h/36.f;bool hot=hovered(d.hwndItem),pressed=(d.itemState&ODS_SELECTED)!=0;
     auto bg=reinterpret_cast<HBRUSH>(SendMessageW(GetParent(d.hwndItem),WM_CTLCOLORBTN,reinterpret_cast<WPARAM>(dc),reinterpret_cast<LPARAM>(d.hwndItem)));FillRect(dc,&d.rcItem,bg?bg:ui::surfaceBrush());
     COLORREF fill=selected?accent:(pressed?ui::palette.pressed:hot?ui::palette.hover:surface);
     rounded(g,float(d.rcItem.left)+.5f,float(d.rcItem.top)+.5f,float(d.rcItem.right-d.rcItem.left)-1,h-1,6*scale,fill,severity(d.hwndItem)!=Severity::Normal?severityColor(severity(d.hwndItem)):selected?fill:line);
-    if(themeIcon<0){RECT r=d.rcItem;InflateRect(&r,-int(8*scale),0);text(dc,r,label(d.hwndItem),reinterpret_cast<HFONT>(SendMessageW(d.hwndItem,WM_GETFONT,0,0)),IsWindowEnabled(d.hwndItem)?(selected?ui::palette.onAccent:severityColor(severity(d.hwndItem))):muted,DT_CENTER|DT_VCENTER|DT_SINGLELINE|DT_END_ELLIPSIS);
+    if(reticleIcon>=0){
+        float width=float(d.rcItem.right-d.rcItem.left),x=(d.rcItem.left+d.rcItem.right)*.5f,y=d.rcItem.top+h*.34f,a=h*.21f;
+        auto tint=selected?ui::palette.onAccent:ink;
+        Gdiplus::Pen pen(color(tint),std::max(1.f,h/30.f));
+        auto geometry=buildReticle(reticleIcon,{x,y},a);
+        if(reticleIcon==0){g.DrawEllipse(&pen,x-a,y-a,a*2,a*2);g.DrawLine(&pen,x-a*.7f,y+a*.7f,x+a*.7f,y-a*.7f);}
+        for(int i=0;i<geometry.lineCount;++i){auto l=geometry.lines[i];g.DrawLine(&pen,l.from.x,l.from.y,l.to.x,l.to.y);}
+        for(int i=0;i<geometry.circleCount;++i){auto c=geometry.circles[i];Gdiplus::SolidBrush brush(color(tint));if(c.filled)g.FillEllipse(&brush,c.center.x-c.radius,c.center.y-c.radius,c.radius*2,c.radius*2);else g.DrawEllipse(&pen,c.center.x-c.radius,c.center.y-c.radius,c.radius*2,c.radius*2);}
+        g.Flush();
+        const wchar_t* caption=reticleName(reticleIcon,chinese);
+        if(!chinese&&reticleIcon==2)caption=L"Diamond+";
+        if(!chinese&&reticleIcon==5)caption=L"Open +";
+        HFONT iconFont=CreateFontW(-std::max(9,int(h*.24f)),0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
+        RECT labelRect{d.rcItem.left+1,LONG(d.rcItem.top+h*.61f),LONG(d.rcItem.left+width-1),d.rcItem.bottom-1};
+        text(dc,labelRect,caption,iconFont,tint,DT_CENTER|DT_VCENTER|DT_SINGLELINE|DT_END_ELLIPSIS);DeleteObject(iconFont);
+    }else if(themeIcon<0){RECT r=d.rcItem;InflateRect(&r,-int(8*scale),0);text(dc,r,label(d.hwndItem),reinterpret_cast<HFONT>(SendMessageW(d.hwndItem,WM_GETFONT,0,0)),IsWindowEnabled(d.hwndItem)?(selected?ui::palette.onAccent:severityColor(severity(d.hwndItem))):muted,DT_CENTER|DT_VCENTER|DT_SINGLELINE|DT_END_ELLIPSIS);
     }else{
         // Vector icons stay crisp at any scale, independent of emoji fonts.
         Gdiplus::Pen pen(color(ink),1.7f*scale);pen.SetStartCap(Gdiplus::LineCapRound);pen.SetEndCap(Gdiplus::LineCapRound);
@@ -50,6 +66,9 @@ inline void buttonContent(const DRAWITEMSTRUCT& d,bool selected,int themeIcon=-1
 }
 inline void button(const DRAWITEMSTRUCT& d,bool selected,int themeIcon=-1){
     UiPaintBuffer frame(d.hDC,d.rcItem);auto content=d;content.hDC=frame.dc();buttonContent(content,selected,themeIcon);frame.present();
+}
+inline void reticleButton(const DRAWITEMSTRUCT& d,bool selected,int shape,bool chinese){
+    UiPaintBuffer frame(d.hDC,d.rcItem);auto content=d;content.hDC=frame.dc();buttonContent(content,selected,-1,shape,chinese);frame.present();
 }
 inline void comboItem(const DRAWITEMSTRUCT& d){
     initialize();if(d.itemState&ODS_COMBOBOXEDIT){InvalidateRect(d.hwndItem,nullptr,FALSE);return;}HBRUSH white=CreateSolidBrush(surface);FillRect(d.hDC,&d.rcItem,white);DeleteObject(white);if(d.itemID==UINT(-1))return;
@@ -106,6 +125,15 @@ inline LRESULT CALLBACK proc(HWND w,UINT m,WPARAM a,LPARAM b,UINT_PTR,DWORD_PTR 
     if(m==WM_NCDESTROY){RemoveWindowSubclass(w,proc,1);delete state;return DefSubclassProc(w,m,a,b);}
     if(m==WM_MOUSEMOVE&&!state->tracking){state->hot=state->tracking=true;TRACKMOUSEEVENT track{sizeof(track),TME_LEAVE,w,0};TrackMouseEvent(&track);InvalidateRect(w,nullptr,FALSE);}
     if(m==WM_MOUSELEAVE){state->hot=state->tracking=false;InvalidateRect(w,nullptr,FALSE);}
+    if(m==WM_SETTEXT&&state->kind==Kind::Check){
+        // Native checkbox text updates paint directly in the system theme.
+        // Keep the native label storage, then redraw with our themed renderer.
+        bool visible=(GetWindowLongPtrW(w,GWL_STYLE)&WS_VISIBLE)!=0;
+        if(visible)DefSubclassProc(w,WM_SETREDRAW,FALSE,0);
+        auto result=DefSubclassProc(w,m,a,b);
+        if(visible)DefSubclassProc(w,WM_SETREDRAW,TRUE,0);
+        InvalidateRect(w,nullptr,FALSE);return result;
+    }
     if(state->kind==Kind::Combo){
         if(m==WM_SETREDRAW){state->redraw=a!=FALSE;return DefSubclassProc(w,m,a,b);}
         // Native combo data messages can draw directly, bypassing WM_PAINT.
