@@ -20,8 +20,8 @@ https://github.com/mcpeixoto/MotionCues
 Peregrine was consulted as a visual-anchor product reference / 视觉锚点产品参考：
 https://github.com/Eeymoo/peregrine
 
-The current source comparison found no direct code copying. This is a bounded review result, not a guarantee of zero similarity.
-经当前源码对比，未发现直接代码复制；这是一项有范围限制的检查结论，不是零相似度保证。
+These projects informed the visual design. The source comparison found no direct code copying; its scope is documented in the repository's design-reference record.
+上述项目提供了视觉设计参考。源码比对未发现直接代码复制，具体比对范围见项目仓库的设计参考记录。
 References do not imply participation in this project or endorsement of its effects.
 参考与致谢不代表原作者参与本项目开发或为使用效果背书。
 
