@@ -2,7 +2,7 @@
 
 [中文](README.md) | **English**
 
-Customizable dot references and an optional reticle for Windows games. Choose regional scrolling, screen-edge scrolling or a static reference, with separate appearance settings, background brightness adaptation, Chinese/English UI and light/dark themes.
+MotionCompensator is a Windows visual aid designed to help reduce visually induced motion sickness and discomfort during gaming, using customizable dot references and an optional central reticle. Choose regional scrolling, screen-edge scrolling or a static reference, with separate appearance settings, background brightness adaptation, Chinese/English UI and light/dark themes.
 
 **Windows x64 · 0.1.0-preview.1 preview**
 
