@@ -2,78 +2,82 @@
 
 [中文](README.md) | **English**
 
-A native Windows C++20 visual-assistance tool for game motion discomfort. It draws a transparent, click-through dot overlay and an optional central reticle, using Windows Graphics Capture, grayscale optical flow, and keyboard/mouse/controller input prediction. No hooks, DLL injection, game-memory reading, or anti-cheat bypasses.
+Customizable dot references and an optional reticle for Windows games. Choose regional scrolling, screen-edge scrolling or a static reference, with separate appearance settings, background brightness adaptation, Chinese/English UI and light/dark themes.
 
-**Current preview: 0.1.0-preview.1. Custom source-available and commercial integration license.** Dependencies retain their own licenses. Comfort effects vary by person, game and settings; general effectiveness has not been established.
+**Windows x64 · 0.1.0-preview.1 preview**
+
+[Download the preview](https://github.com/gzz312/MotionCompensator/releases/download/v0.1.0-preview.1/MotionCompensator-0.1.0-preview.1-win-x64.zip) · [Release notes and checksums](https://github.com/gzz312/MotionCompensator/releases/tag/v0.1.0-preview.1)
+
+## Three dot styles
+
+- **Regional dots:** continuously scrolling regions driven by observed motion and input prediction, with staggered layouts, boundary fading and a clear center.
+- **Screen-edge dots:** larger dots along selected screen edges, using scrolling, fading and size differences to present motion.
+- **Static dots:** a fixed 4×4 reference, with soft halos on the outer columns. Select it through the interface or shortcut.
+
+Adjust dot size, color, transparency and layout independently for each style. Dynamic styles also offer motion strength and direction reversal. The optional reticle supports cross and diamond-cross shapes.
 
 ## Gameplay demonstration
 
-Real PAYDAY 2 footage demonstrating visual presentation only, not established comfort efficacy or benchmark results. The user supplied the three comparison screenshots below, one for each style.
+Three dot styles in PAYDAY 2. Click an image for a larger view. Colors, dot sizes and transparency are adjustable.
 
 | Regional dots | Screen-edge dots | Static dots (4×4) |
 | --- | --- | --- |
 | ![Regional dots: fine peripheral dots and a clear center](assets/demo/payday2-regional-user.jpg) | ![Screen-edge dots: large dots along the left and right edges](assets/demo/payday2-edge-user.jpg) | ![Static dots: a fixed 4×4 reference](assets/demo/payday2-static-user.jpg) |
 
-Click an image for a larger view. These are the custom appearance settings used during capture, not mandatory colors or dot sizes.
-
-**Regional dots in motion:**
+**Regional dots in motion (25 fps, approximately 3 seconds):**
 
 ![PAYDAY 2 regional-dot gameplay demonstration](assets/demo/payday2-regional.gif)
 
-The GIF is a **25 fps, approximately 3-second** excerpt at its original speed, made from a new high-frame-rate capture with reduced resolution and colors. See [capture and media notes](assets/demo/README.md#english).
-
-## License
-
-Free use, study, modification and sharing are permitted. Integration into a larger commercial work with substantial independent functionality is allowed with attribution to MotionCompensator and gzz312, an available source address, and preservation of the full license.
-
-Standalone sale of the tool or modified/rebranded versions, paid standalone plugins, and separate paid unlocks of project-based functionality are prohibited. Trivial wrappers, minor changes and bundling do not qualify as commercial integration. Independent parts of a larger commercial work do not have to disclose their source solely because of integration.
-
-The full Chinese terms in [LICENSE.txt](LICENSE.txt) govern; its English text is an informational summary. This is a custom source-available license, not MIT/GPL or an OSI-approved open-source license. Third-party licenses remain separate. No special standalone-sale exception is provided for the author.
+The GIF is scaled and compressed to illustrate the dots' appearance and movement. See [media notes](assets/demo/README.md#english) for capture details.
 
 ## Getting started
 
-**0.1.0-preview.1 is publicly released.** [Download the Windows x64 preview ZIP](https://github.com/gzz312/MotionCompensator/releases/download/v0.1.0-preview.1/MotionCompensator-0.1.0-preview.1-win-x64.zip), extract it and run `MotionCompensator.exe`. Other assets and checksums are on the [release page](https://github.com/gzz312/MotionCompensator/releases/tag/v0.1.0-preview.1). Local development packages live in `versions/0.1.0-preview.1/` and are excluded from the source repository.
+1. Download and extract the preview ZIP, then run `MotionCompensator.exe`. No OpenCV or compiler installation is needed.
+2. Start a game, preferably in borderless/windowed mode. Leave automatic foreground-game detection enabled and switch to a recognized game, or refresh the window list and select the game window manually.
+3. Choose a dot style and adjust its appearance. The overlay appears over the target game and hides when you switch away.
+4. Enable the central reticle if desired. Use the **中文 / English** button to change the interface language and the theme button to cycle light, dark and system themes.
 
-The EXE embeds non-system dependencies, initial settings, instructions, credits and license texts. Installing OpenCV or a compiler is unnecessary for running a packaged build.
+| Shortcut | Action |
+| --- | --- |
+| Ctrl+Alt+F8 | Cycle dot styles |
+| Ctrl+Alt+F9 | Show or hide the overlay |
+| Ctrl+Alt+F10 | Stop capture and automatic connection |
 
-1. Close other versions, start your game and prefer borderless/windowed mode.
-2. Leave automatic foreground-game detection enabled and switch to a recognized game. For an unknown game, refresh the window list, select its window and connect manually.
-3. Select Regional dots, Screen-edge dots or Static dots. Each style retains separate visual settings. Dynamic styles never automatically switch to Static.
-4. Switch back to the target game to view the overlay; it hides when you leave the game. Start with a short comparison and stop if discomfort develops.
-5. For diagnostics, enable **Log**, reproduce the issue, then disable it. Files are saved beside the EXE in `logs/` and are not uploaded automatically.
+The application can run as a single EXE, with instructions and license texts embedded. Close other versions first to avoid shortcut conflicts.
 
-Ctrl+Alt+F8 cycles styles; Ctrl+Alt+F9 shows/hides the overlay; Ctrl+Alt+F10 stops capture and automatic connection. The app's **中文 / English** button switches its interface language independently of these README pages.
+## Usage tips and compatibility
 
-## Features
+Dots are an optional visual aid. Experiences vary by person and game, and relief from motion discomfort is not guaranteed. Start with a short session and stop if discomfort develops.
 
-- Continuously scrolling regional dots, fading screen-edge dots, and a fixed 4×4 static reference.
-- Staggered layout, a clear center, dot size/transparency/color, and cross/diamond-cross reticles.
-- Same-hue brightness adaptation and dual outlines; alternating edge-dot sizes, limited shrinking near fade-out and continuous direction reversal.
-- A 9×9 grayscale analysis grid aggregated into nine motion regions, combined with input prediction and global/local observations.
-- Debug vectors/curves, opt-in diagnostic logging, Chinese/English UI and light/dark/system themes.
+Exclusive fullscreen can hide the overlay. Strong motion blur, camera cuts and weapon/HUD occlusion can affect motion estimation. Multi-monitor/high-DPI support and full keyboard navigation still need improvement; see [known issues](docs/en/KNOWN-ISSUES.md).
 
-## Limitations
+The app captures windows externally with Windows Graphics Capture and drives the dots with grayscale optical flow and keyboard/mouse/controller input prediction. It uses no hooks, DLL injection, game-memory reading or anti-cheat bypasses. Check that the target game permits external overlays before use.
 
-Game comfort comparisons have primarily been performed by the user in PAYDAY 2 and other games. Software checks establish neither medical efficacy nor universal game compatibility. Exclusive fullscreen, motion blur, cuts, weapon/HUD occlusion and discrepancies between input intent and actual character motion can affect results. Multi-monitor/high-DPI coverage, full keyboard navigation and long-running stability need more testing. See [known issues](docs/en/KNOWN-ISSUES.md).
+## Reporting issues
+
+Open an [Issue](https://github.com/gzz312/MotionCompensator/issues) with the application version, game/window mode, display scaling and reproduction steps.
+
+**Log** is off by default. Enable it when diagnosing a problem, reproduce the issue, then disable it. Files are saved beside the EXE in `logs/` and are not uploaded automatically. Review process information and other local details before sharing. [Feedback and contribution guide](CONTRIBUTING.md#english) · [Local data and privacy](docs/en/PRIVACY.md)
+
+## License
+
+The [source-available and commercial integration license](LICENSE.txt) permits free use, study, modification and sharing, as well as integration into a larger commercial work with substantial independent functionality and attribution. Standalone sale, paid rebrands and separate paid unlocks of project-based functionality are prohibited.
+
+Distributions must retain the full license and credit MotionCompensator, gzz312 and the source. The complete Chinese license terms govern; dependencies retain their own licenses. [Third-party notices](docs/en/THIRD-PARTY.md)
 
 ## Building from source
 
-Requires Windows, a C++20 compiler, CMake, Ninja and matching static OpenCV 4.12 core/imgproc/video libraries. MSYS2 UCRT64 GCC 15.2 has been validated; the MSVC path has not.
+Validated with Windows x64, MSYS2 UCRT64 GCC15.2, CMake, Ninja and matching static OpenCV4.12 libraries. The MSVC build has not been validated.
 
 ```powershell
 ./build.ps1 -OpenCVRoot '<static OpenCV installation>'
 ./package.ps1 -OpenCVRoot '<static OpenCV installation>'
 ```
 
-Tools may be on PATH or supplied with `-Compiler` and `-ToolsRoot`. Dependency caches, logs, previous binaries and build directories are excluded. See the [build guide](docs/en/BUILD.md).
+See the [build guide](docs/en/BUILD.md) for dependencies and complete instructions. [Testing](docs/en/TESTING.md) · [Version history (Chinese)](docs/HISTORY.md) · [Development record (Chinese)](docs/DEVELOPMENT.md)
 
-## Documentation and credits
+## References and thanks
 
-- [Validation record (Chinese)](docs/RELEASE-PREVIEW.md) · [Contributing and reporting issues](CONTRIBUTING.md#english)
-- [Known issues](docs/en/KNOWN-ISSUES.md) · [Testing](docs/en/TESTING.md) · [Local data and privacy](docs/en/PRIVACY.md)
-- [Design references and thanks](docs/en/CREDITS.md) · [Third-party licenses](docs/en/THIRD-PARTY.md)
-- [Development record (Chinese)](docs/DEVELOPMENT.md) · [Version history (Chinese)](docs/HISTORY.md)
+The screen-edge visual design draws on the ideas of shsr07 (拾荒散人)'s [MotionStabilizer](https://github.com/shsr07/MotionStabilizer). Thanks to the author for sharing and discussing the design. [Author's Bilibili video](https://www.bilibili.com/video/BV1saKg6XEvg/)
 
-The screen-edge visual design was inspired by shsr07 (拾荒散人)'s [MotionStabilizer](https://github.com/shsr07/MotionStabilizer). Thanks to the author for sharing and discussing the design. [Author's Bilibili video](https://www.bilibili.com/video/BV1saKg6XEvg/). The scoped comparison of current sources found no direct code copying; this is not a guarantee of zero similarity. References do not imply participation or endorsement.
-
-The repository contains source, build scripts and selected development records. Machine-local logs, dependency caches, old EXEs and temporary build files are excluded. The current binary release is [0.1.0-preview.1](https://github.com/gzz312/MotionCompensator/releases/tag/v0.1.0-preview.1), which remains a preview.
+Staggered-layout and periodic-continuity ideas were informed by Miguel Peixoto's MotionCues, with Peregrine as a visual-anchor reference. See [design references and credits](docs/en/CREDITS.md) for sources and the code-comparison record.
