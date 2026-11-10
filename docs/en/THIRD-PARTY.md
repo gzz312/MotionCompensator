@@ -11,7 +11,7 @@ Project-original material uses the custom source-available and commercial integr
 | libgcc / libstdc++ | GCC static runtime | GPLv3 with GCC Runtime Library Exception 3.1 |
 | MinGW-w64 winpthreads | Static threading support | Supplied copyright/license terms |
 
-The GCC Runtime Library Exception permits eligible independent-module linking/distribution under additional conditions. The appearance of GPL runtime text does not mean the application itself selected GPL. Runtime libraries are unmodified; verify actual dependencies and notices for each distribution.
+GCC runtime libraries are distributed under their GPLv3 and Runtime Library Exception terms. This project uses unmodified runtime libraries; see the bundled complete texts for the conditions.
 
 Full third-party texts are in [packaging/third-party-licenses.txt](../../packaging/third-party-licenses.txt), credits in [project-notices.txt](../../packaging/project-notices.txt), and the project license in [LICENSE.txt](../../LICENSE.txt). All are embedded in the EXE. The supplied OpenCV notices also retain JPEG/PNG/TIFF notices; this does not mean those disabled codec features are enabled in the app.
 
