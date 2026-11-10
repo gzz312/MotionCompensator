@@ -1,4 +1,5 @@
 #include "preferences.hpp"
+#include "reticle.hpp"
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -18,6 +19,10 @@ int main() {
     input.profiles[2].color={.9f,.2f,.3f};input.profiles[2].opacity=.45;
     std::stringstream file;mc::writePreferences(file,input);auto text=file.str();mc::Preferences output;
     require(mc::readPreferences(file,output) && input==output,"all three profiles, active style and shared reticle round trip independently");
+    for(int shape=0;shape<mc::ReticleShapeCount;++shape){
+        input.reticleShape=shape;std::stringstream saved;mc::writePreferences(saved,input);mc::Preferences reloaded;
+        require(mc::readPreferences(saved,reloaded)&&reloaded==input,"all reticle IDs survive settings round trip without changing other preferences");
+    }
     std::stringstream legacy("MotionCompensatorSettings 1\ncommon 0 1 1 1 1 1 16 .2 1 .45\nprofile 0 3 1 122 .1 140 .81 1 1 1 1 1 0 0\nprofile 1 18 .75 140 .1 256 1 0 1 0 0 0 0 0\nprofile 2 5 1 240 .1 140 1 1 1 1 1 0 0 0\n");
     mc::Preferences migrated;require(mc::readPreferences(legacy,migrated),"version 1 upgrades without losing user settings");
     require(migrated.reticleSize==16 && migrated.profiles[0].gain==.81f && migrated.profiles[2].radius==5 && !migrated.profiles[0].enhancement && migrated.profiles[1].enhancement && !migrated.profiles[2].enhancement,"old enhancement choices are replaced by fixed per-style behavior");
