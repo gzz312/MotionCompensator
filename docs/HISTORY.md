@@ -1,5 +1,16 @@
 # 版本记录 / Changelog
 
+## 0.1.0-preview.11 — 运动识别与采集更新（2026-11-11）
+
+- 更新局部稠密光流与相邻采集帧调度，分析以30次/秒为目标。
+- 保留有时限的运动延续，区分可靠静止与观测不足，避免持续按键无限驱动缺测区域。
+- 支持在系统允许时隐藏采集边框，移除滚轮输入采集，修正外观预览。
+- 增加直接观测与帧对诊断，保持现有外观设置兼容。
+
+Updates local dense flow, adjacent-source pairing, bounded continuation and stillness handling. Adds supported capture-border hiding, excludes wheel input and fixes previews. Existing appearance settings remain compatible. First-person games are the primary focus; uniform backgrounds and third-person driving remain limited.
+
+[发布说明 / Release notes](RELEASE-0.1.0-preview.11.md)
+
 ## 0.1.0-preview.2 — 准星与界面更新（2026-11-10）
 
 - 新增圆点、圆环、留空十字、T形和菱形准星，连同十字、菱十字及关闭选项，通过横排图标按钮切换。

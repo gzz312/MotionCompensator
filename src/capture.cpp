@@ -1,7 +1,9 @@
 #include "capture.hpp"
+#include "capture_border.hpp"
 #include "downsample.hpp"
 #include "flow.hpp"
-#include "analysis_mailbox.hpp"
+#include "analysis_pair_mailbox.hpp"
+#include "capture_cadence.hpp"
 #ifdef MC_HAS_OPENCV
 #include "tracking.hpp"
 #endif
@@ -52,22 +54,37 @@ void Capture::run(std::stop_token stop, HWND window,bool diagnostic,std::filesys
         auto format=dx::DirectXPixelFormat_B8G8R8A8UIntNormalized;
         check(factory<cap::IDirect3D11CaptureFramePoolStatics2>(L"Windows.Graphics.Capture.Direct3D11CaptureFramePool")->CreateFreeThreaded(runtimeDevice.Get(),format,2,size,&pool),"CreateFreeThreaded");
         check(pool->CreateCaptureSession(item.Get(),&session),"CreateCaptureSession");
+        mc::CaptureBorder border;border.start(session.Get());
         check(session->StartCapture(),"StartCapture");
         { std::lock_guard lock(mutex_); stats_.running=true; stats_.status="WGC active / waiting for analysis"; }
         Downsample analysis; bool analysisReady=false;
-        std::vector<float> pixels;double lastAnalysis=0;bool wasActive=false;
-        mc::AnalysisMailbox mailbox;
+        std::vector<float> pixels;double lastAnalysis=0;bool wasActive=false,wasFlow=flowEnabled_.load();
+        mc::CaptureCadence cadence;
+        mc::AnalysisPairMailbox mailbox(1./30);
         std::jthread processor([&](std::stop_token token){
-            mc::GrayFrame previous,current;int recorded=0;double lastRecord=0;
-            while(mailbox.take(token,current)){
-                if(!flowEnabled_.load()){previous={};continue;}
-                if(previous.generation!=current.generation)previous={};
+            mc::AnalysisPair pair;int recorded=0;double lastRecord=0;uint64_t workerGeneration=~uint64_t(0);
+#ifdef MC_HAS_OPENCV
+            mc::DenseFlowWorkspace workspace;
+#endif
+            while(mailbox.take(token,pair)){
+                if(!flowEnabled_.load()){
+#ifdef MC_HAS_OPENCV
+                    workspace.reset();
+#endif
+                    continue;}
+                const auto& previous=*pair.previous;const auto& current=*pair.current;
+                if(workerGeneration!=current.generation){workerGeneration=current.generation;
+#ifdef MC_HAS_OPENCV
+                    workspace.reset();
+#endif
+                }
                 double begin=qpcSeconds(),dt=current.timestamp-previous.timestamp;
+                if(previous.sourceWidth!=current.sourceWidth||previous.sourceHeight!=current.sourceHeight||!std::isfinite(dt)||dt<.008||dt>.15){std::lock_guard lock(mutex_);++stats_.invalidPairs;continue;}
                 mc::MotionSample motion;
                 try {
                     if(previous.sourceWidth==current.sourceWidth && previous.sourceHeight==current.sourceHeight && dt>0){
 #ifdef MC_HAS_OPENCV
-                        motion=mc::estimateTrackedFlow(previous.pixels,current.pixels,Downsample::W,Downsample::H,dt,current.timestamp,current.sourceWidth,current.sourceHeight);
+                        motion=mc::estimateDenseFlow(previous.pixels,current.pixels,Downsample::W,Downsample::H,dt,current.timestamp,current.sourceWidth,current.sourceHeight,&workspace);
 #else
                         motion=mc::estimateFlow(previous.pixels,current.pixels,Downsample::W,Downsample::H,dt,current.timestamp,current.sourceWidth,current.sourceHeight);
 #endif
@@ -88,22 +105,23 @@ void Capture::run(std::stop_token stop, HWND window,bool diagnostic,std::filesys
                     if(mailbox.current(current.generation)){
                         stats_.motion=std::move(motion);++stats_.analyses;stats_.analysisMs=(qpcSeconds()-begin)*1000;
                         stats_.analysisStartAgeMs=(begin-current.timestamp)*1000;stats_.droppedAnalysis=mailbox.dropped();
-                        stats_.status="WGC / asynchronous latest-frame local flow";
+                        stats_.status="WGC / adjacent capture pairs / 30Hz analysis / DIS";
                     }
                 }catch(const std::exception& e){
                     std::lock_guard lock(mutex_);
                     if(mailbox.current(current.generation)){stats_.motion={};stats_.status=std::string("Analysis error: ")+e.what();}
                 }
-                previous=std::move(current);
             }
         });
         auto resetHistory=[&]{
-            analysis.resetHistory();mailbox.reset();
+            analysis.resetHistory();mailbox.reset();cadence.reset();
             std::lock_guard lock(mutex_);stats_.motion={};stats_.light={};++stats_.flowResets;
         };
         while(!stop.stop_requested() && IsWindow(window)) {
+            border.poll();{std::lock_guard lock(mutex_);stats_.borderlessState=border.state;}
             bool active=diagnostic || (GetForegroundWindow()==window && !IsIconic(window));
-            if(active!=wasActive) {resetHistory();wasActive=active;}
+            bool flow=flowEnabled_.load();
+            if(active!=wasActive||flow!=wasFlow) {resetHistory();wasActive=active;wasFlow=flow;}
             ComPtr<cap::IDirect3D11CaptureFrame> frame;
             uint64_t receivedFrames=0;
             // Drain the bounded WGC queue before copying. Processing and GPU
@@ -129,11 +147,20 @@ void Capture::run(std::stop_token stop, HWND window,bool diagnostic,std::filesys
                         ComPtr<SurfaceAccess> access;check(surface.As(&access),"Surface access");
                         ComPtr<ID3D11Texture2D> texture;check(access->GetInterface(IID_PPV_ARGS(&texture)),"Capture texture");
                         double stamp=0;int frameW=0,frameH=0;bool submitted=false;
-                        bool ready=analysis.read(texture.Get(),pixels,timestamp,stamp,frameW,frameH,now-lastAnalysis>=(flowEnabled_.load()?.033:.1),submitted);
+                        if(flow)cadence.observe(timestamp,receivedFrames);
+                        double readBegin=qpcSeconds();
+                        std::vector<Downsample::Readback> preceding;
+                        bool ready=analysis.read(texture.Get(),pixels,timestamp,stamp,frameW,frameH,flow?true:now-lastAnalysis>=.1,submitted,&preceding);
+                        {std::lock_guard lock(mutex_);stats_.readbackCallMs=(qpcSeconds()-readBegin)*1000;if(ready&&flow)stats_.sourceReadbacks+=preceding.size()+1;}
                         if(submitted)lastAnalysis=now;
+                        {std::lock_guard lock(mutex_);stats_.observedCaptureFps=flow?cadence.captureFps():0;stats_.targetAnalysisFps=flow?cadence.targetFps():0;}
                         if(ready){
                             {std::lock_guard lock(mutex_);if(backgroundEnabled_.load() && stamp-stats_.light.timestamp>=.09){double begin=qpcSeconds();stats_.light.update(pixels,Downsample::W,Downsample::H,stamp);stats_.brightnessMs=(qpcSeconds()-begin)*1000;++stats_.brightnessUpdates;}}
-                            if(flowEnabled_.load())mailbox.submit({std::move(pixels),stamp,frameW,frameH,0});
+                            if(flowEnabled_.load()){
+                                std::vector<mc::GrayFrame> completed;completed.reserve(preceding.size()+1);
+                                for(auto& earlier:preceding)completed.push_back({std::move(earlier.pixels),earlier.timestamp,earlier.width,earlier.height,0});
+                                completed.push_back({std::move(pixels),stamp,frameW,frameH,0});mailbox.submitBatch(std::move(completed));
+                            }
                             else {mailbox.reset();std::lock_guard lock(mutex_);stats_.motion={};stats_.status="WGC / background brightness only";}
                         }
                     }catch(const std::exception& e){

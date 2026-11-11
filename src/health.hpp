@@ -12,7 +12,8 @@ inline Health captureHealth(bool selected,bool running,bool foreground,bool dyna
     if(!foreground)return {Severity::Normal,HealthReason::Paused};
     if(!dynamic)return {Severity::Normal,HealthReason::Static};
     if(motion.timestamp<=0)return {Severity::Warning,HealthReason::Waiting};
-    if(!motionFresh(motion,now)||!std::isfinite(motion.confidence)||motion.confidence<.65f)return {Severity::Warning,HealthReason::Observation};
+    auto modelReady=[](float q,const auto& field){return std::isfinite(q)&&q>=.65f&&std::all_of(field.begin(),field.end(),[](Vec2 v){return std::isfinite(v.x)&&std::isfinite(v.y);});};
+    if(!anyRegionMotionTrusted(motion,now)&&!(motionFresh(motion,now)&&(modelReady(motion.globalConfidence,motion.globalVelocity)||modelReady(motion.movingBackgroundConfidence,motion.movingBackgroundVelocity))))return {Severity::Warning,HealthReason::Observation};
     return {Severity::Normal,HealthReason::Ready};
 }
 }

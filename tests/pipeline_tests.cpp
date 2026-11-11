@@ -25,5 +25,11 @@ int main(){
     require(rawLabel && ready,"panel exposes actual flow speed and the same readiness decision as driver");
     sample.confidence=0;d.flow=sample;d.now=10.16;history.push(d);scene=mc::buildDebugScene(history,true,20);bool low=false;for(auto t:scene.labels)low|=t.text.find(L"可信度/覆盖不足")!=std::wstring::npos;require(low,"low-confidence observations are distinguished from missing capture");
     d.now=11;history.push(d);scene=mc::buildDebugScene(history,true,20);bool expired=false;for(auto t:scene.labels)expired|=t.text==L"结果过期";require(expired,"expired data is labelled rather than silently disappearing");
+    sample={};sample.timestamp=20;sample.completedTimestamp=20.01;sample.analysisWidth=960;sample.analysisHeight=540;
+    sample.features=324;sample.tracked=48;sample.observedCells=12;sample.issue=mc::MotionIssue::LowCoverage;sample.regionConfidence.fill(0);
+    for(int r:{6,7,8}){sample.velocity[r]={float(r-7)*180,180};sample.regionConfidence[r]=.9f;}
+    d={};d.now=20.03;d.flow=sample;history.clear();history.push(d);scene=mc::buildDebugScene(history,true,20);ready=false;
+    for(auto label:scene.labels)ready|=label.text.find(L"可用于补偿")!=std::wstring::npos;
+    require(ready&&mc::regionMotionTrusted(sample,8,d.now),"diagnostics recognize trusted partial regions even when whole-frame coverage is insufficient");
     std::cout<<"PASS: latest-slot backpressure, reset generation, shutdown, asynchronous timestamp policy, flow-only drive and honest visual state\n";
 }

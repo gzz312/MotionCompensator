@@ -16,7 +16,7 @@ void InputObserver::initialize(HWND window) {
     rawReady=RegisterRawInputDevices(devices,2,sizeof(devices[0]))!=FALSE;
     if(!rawReady) registrationError=GetLastError();
 }
-void InputObserver::clear() {dx_=dy_=0;smoothed_={};keys_.fill(false);absoluteKnown_=false;mouseButtons_=0;wheel_=0;}
+void InputObserver::clear() {dx_=dy_=0;smoothed_={};keys_.fill(false);absoluteKnown_=false;mouseButtons_=0;}
 void InputObserver::setTarget(HWND target,bool active) {
     if(target!=target_ || active!=active_) clear();
     target_=target;active_=active;
@@ -27,13 +27,13 @@ void InputObserver::onRaw(HRAWINPUT handle) {
     UINT read=GetRawInputData(handle,RID_INPUT,&raw,&size,sizeof(RAWINPUTHEADER));
     if(read==UINT(-1) || read<sizeof(RAWINPUTHEADER)) return;
     if(raw.header.dwType==RIM_TYPEMOUSE) {
-        ++mouseEvents;lastEvent=qpcSeconds();
         const auto& mouse=raw.data.mouse;
+        if(mouse.lLastX==0&&mouse.lLastY==0&&(mouse.usButtonFlags&0x03ff)==0)return;
+        ++mouseEvents;lastEvent=qpcSeconds();
         for(int button=0;button<5;++button) {
             if(mouse.usButtonFlags&(1<<(button*2))) mouseButtons_|=uint16_t(1<<button);
             if(mouse.usButtonFlags&(2<<(button*2))) mouseButtons_&=uint16_t(~(1<<button));
         }
-        if(mouse.usButtonFlags&RI_MOUSE_WHEEL) wheel_+=float(static_cast<SHORT>(mouse.usButtonData))/WHEEL_DELTA;
         if(mouse.usFlags&MOUSE_MOVE_ABSOLUTE) {
             if(absoluteKnown_ && absoluteDevice_==raw.header.hDevice) {
                 dx_+=(mouse.lLastX-absoluteX_)*GetSystemMetrics(SM_CXVIRTUALSCREEN)/65535.;
@@ -58,7 +58,7 @@ mc::InputState InputObserver::poll(double now,float dt) {
     if(std::abs(smoothed_.x)<.5f) smoothed_.x=0;
     if(std::abs(smoothed_.y)<.5f) smoothed_.y=0;
     out.mouseRate=smoothed_;out.mouse=std::hypot(smoothed_.x,smoothed_.y)>1;
-    out.mouseButtons=mouseButtons_;out.wheel=wheel_;wheel_=0;
+    out.mouseButtons=mouseButtons_;
     // Resync held movement keys after focus changes or missed break messages.
     for(int key:std::array<int,11>{'W','A','S','D',VK_UP,VK_DOWN,VK_LEFT,VK_RIGHT,VK_SHIFT,VK_CONTROL,VK_SPACE}) keys_[key]=(GetAsyncKeyState(key)&0x8000)!=0;
     out.sprint=keys_[VK_SHIFT];out.crouch=keys_[VK_CONTROL];out.jump=keys_[VK_SPACE];

@@ -9,7 +9,6 @@ class InputObserver {
     double dx_=0,dy_=0,nextProbe_=0;
     mc::Vec2 smoothed_{};
     uint16_t mouseButtons_=0;
-    float wheel_=0;
     HANDLE absoluteDevice_{};LONG absoluteX_=0,absoluteY_=0;bool absoluteKnown_=false;
     std::array<bool,256> keys_{};
     std::array<bool,4> connected_{};

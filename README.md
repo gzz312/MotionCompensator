@@ -2,11 +2,11 @@
 
 **中文** | [English](README.en.md)
 
-MotionCompensator 是一款旨在缓解游戏中的 3D 眩晕与晕动不适的 Windows 视觉辅助工具，通过点阵参照与可选的中央准星，帮助改善游玩时的视觉体验。提供分区滚动、屏边滚动和静态三种方案，可分别调整外观，支持背景明暗适配、中英界面及明暗主题。
+MotionCompensator 是一款主要面向第一人称游戏、旨在缓解 3D 眩晕与晕动不适的 Windows 视觉辅助工具，通过点阵参照与可选的中央准星，帮助改善游玩时的视觉体验。提供分区滚动、屏边滚动和静态三种方案，可分别调整外观，支持背景明暗适配、中英界面及明暗主题。
 
-**Windows x64 · 0.1.0-preview.2 预览版**
+**Windows x64 · 0.1.0-preview.11 预览版**
 
-[下载预览版](https://github.com/gzz312/MotionCompensator/releases/download/v0.1.0-preview.2/MotionCompensator-0.1.0-preview.2-win-x64.zip) · [发布说明与校验文件](https://github.com/gzz312/MotionCompensator/releases/tag/v0.1.0-preview.2)
+[下载预览版](https://github.com/gzz312/MotionCompensator/releases/download/v0.1.0-preview.11/MotionCompensator-0.1.0-preview.11-win-x64.zip) · [发布说明与校验文件](https://github.com/gzz312/MotionCompensator/releases/tag/v0.1.0-preview.11)
 
 ## 三种点阵方案
 
@@ -49,9 +49,11 @@ GIF经过缩放和压缩，用于展示点阵外观与运动方式。详细拍�
 
 点阵是可选的视觉辅助，体验因人和游戏而异，不能保证消除眩晕。建议先短时体验，出现不适时停止使用。
 
+第三人称驾驶、大片静止前景或单调背景下，可能出现运动漏检、速度偏大或点阵不连续；这些场景尚未专门优化。
+
 独占全屏可能遮挡浮层；强运动模糊、切镜及武器/HUD遮挡可能影响运动估计。多显示器、高DPI和完整键盘导航仍有待完善，详细限制见[已知问题](docs/KNOWN-ISSUES.md)。
 
-程序通过外部 Windows Graphics Capture 采集窗口，结合灰度光流及键鼠/手柄输入预测驱动点阵。它不使用 Hook、DLL 注入、游戏内存读取或反作弊绕过；使用前仍应确认目标游戏允许外部浮层。
+程序通过外部 Windows Graphics Capture 采集窗口，结合局部灰度稠密光流及键鼠/手柄输入预测驱动点阵。采集持续更新相邻画面，分析以30次/秒为目标，实际频率受画面交付与处理能力影响。它不使用 Hook、DLL 注入、游戏内存读取或反作弊绕过；使用前仍应确认目标游戏允许外部浮层。
 
 ## 问题反馈
 

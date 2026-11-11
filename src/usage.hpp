@@ -47,6 +47,8 @@ MotionCompensator 是一款旨在缓解游戏中 3D 眩晕与晕动不适的 Win
 调试可视化
 点击“显示调试参数”后，切回游戏查看面板；再次点击可隐藏。
 蓝色箭头表示输入预测，黄色表示用于驱动的光流，紫色表示融合运动，绿色表示点阵运动。箭头长度反映速度，显示长度设有上限，不限制实际滚动速度。
+面板显示运动中、疑似停止、已停止或观测不足。“延续”表示短暂使用最近可靠运动，未将其标成新观测；这些状态是画面判断，不是游戏引擎的角色或车辆状态。
+每个区域的D表示九个分析格中通过直接观测检查的格数。当前版本不以邻区或背景模型向量填补缺测；原始观测与短时延续在日志中分别记录。可靠性评分不代表识别准确率。
 可信度条表示画面观测的可靠程度；N/A和曲线断线表示相应数据不可用。趋势图显示最近10秒的处理频率、耗时与原始光流速度。
 面板中的FPS是采集、分析或渲染提交频率，不是游戏帧率；CPU耗时也不等于屏幕最终呈现延迟。
 “日志”与调试显示独立，每次启动默认关闭。需要反馈问题时勾选，复现后取消。日志保存在程序旁的logs目录，不会自动上传；分享前请检查进程信息等本地内容。
@@ -61,6 +63,17 @@ Ctrl+Alt+F10：停止采集并关闭自动连接；再次使用时选择游戏�
 点阵不显示：检查连接目标、“显示浮层”、透明度和游戏窗口模式，并确认目标游戏在前台。
 快捷键无效：退出其他版本或占用快捷键的程序，也可使用窗口中的按钮。软件会自动重试注册快捷键。
 橙色提示表示快捷键冲突或观测不足，红色提示表示采集、日志等异常。悬停相关控件可查看详情。
+
+动态点阵如何响应
+动态方案根据局部灰度光流和短时输入预测驱动点阵。不同区域保留独立方向与速度，不按车速直接驱动点阵。
+采集侧持续更新最新画面，分析侧以每秒30次为目标，每次使用最新相邻的两张已回读画面。例如实际回读为60帧/秒时，两帧通常相隔约16.7毫秒。采集丢帧或回读繁忙会使间隔变长，不代表读取了游戏引擎帧率。
+分析繁忙时替换过时任务，不积压或重复画面。位移按真实时间间隔换算速度；不足8毫秒或超过150毫秒的帧对跳过。检测频率与点阵绘制频率分别运行，实际分析频率可能低于30次/秒。
+连续、分布充分的直接观测显示背景静止时，点阵会平滑停止，按住前进键也不会强制持续运动。缺少纹理、匹配失败或遮挡表示观测不足，不作为静止证据。
+局部观测不足时，仅短暂延续最近可靠运动，超过时限后收敛。当前版本不进行额外范围匹配、上级方向借用或背景模型填补。移动按键只提供短暂起步预测，转视角输入仍参与短时预测。没有可靠画面证据时不强迫持续滚动，也不会自动切换静态方案。
+鼠标滚轮不参与运动输入采集。滚轮在游戏中引起的镜头或场景变化仍可能被画面检测识别。
+
+采集与兼容性
+采集时会向Windows申请隐藏本会话的捕获边框；若出现系统授权提示，请按需选择。不支持或未获准时保留边框，仍可正常采集，不修改系统隐私设置。
 纯色墙、运动模糊、切镜或武器/HUD遮挡可能影响运动估计。输入预测表示操作意图，不能准确判断跳跃、顶墙或过场等角色状态；当前没有自动识别CG并隐藏浮层的功能。
 多显示器、高DPI和完整Tab导航尚未全面适配。使用前请确认目标游戏允许外部浮层。
 设置自动保存到当前Windows用户配置。运行只需EXE，无需安装OpenCV、编译器或额外程序DLL。
@@ -109,6 +122,8 @@ The reticle is fixed at the screen center. It does not follow recoil or indicate
 Visual diagnostics
 Click Show debug parameters and return to the game. Click again to hide the panel.
 Blue arrows show input prediction, yellow shows flow used for driving, purple shows fused motion and green shows dot motion. Arrow length represents speed, with a display limit that does not cap actual scrolling.
+The panel distinguishes Moving, Checking stop, Stopped and Observation missing. Held regions temporarily use recent reliable motion, not new measurements. These are visual estimates, not game-engine character or vehicle states.
+D counts directly observed analysis cells in each region. Missing regions are not filled with neighbour or background-model vectors. Logs distinguish raw observations from bounded continuation. Reliability scores are not accuracy probabilities.
 Confidence bars indicate observation reliability. N/A and gaps in graphs indicate unavailable data. Graphs show ten seconds of processing rates, CPU times and raw flow speed.
 Panel FPS values are capture, analysis or render-submission rates, not the game's frame rate. CPU timings are not final display latency.
 Log is independent of the panel and is off at each launch. Enable it to reproduce a problem, then disable it. Files are saved beside the EXE in logs/ and are not uploaded automatically. Review process information and other local details before sharing.
@@ -123,6 +138,17 @@ Troubleshooting and limits
 No dots: check the target window, Show overlay, transparency, window mode and whether the target game is in the foreground.
 Shortcut unavailable: close other versions or the app using the shortcut, or use the panel buttons. Registration is retried automatically.
 Amber indicates a shortcut conflict or insufficient observations. Red indicates a capture or logging error. Hover over the relevant control for details.
+
+How dynamic dots respond
+Dynamic styles use local grayscale optical flow and brief input prediction. Regions retain independent directions and speeds; dots do not directly represent vehicle speed.
+Capture continuously updates source images while analysis targets 30 updates per second, using the latest adjacent readback images. At 60 delivered readbacks per second the pair interval is usually about 16.7ms. Capture drops and readback pressure can increase that interval; this is not game-engine FPS.
+Busy analysis replaces outdated pending work without queuing or repeating images. Velocity uses actual source timestamps. Pairs below 8ms or above 150ms are skipped. Rendering runs separately and actual analysis throughput may be below 30Hz.
+Repeated, sufficiently distributed direct observations of a stationary background make the dots settle, even if Forward remains held. Low texture, failed matching or occlusion mean insufficient observations and do not prove stillness.
+Missing observations may briefly continue recent reliable motion, then settle when that expires. Additional context matching, parent borrowing and background-model filling are disabled. Movement input only supplies a short initial prediction; camera-look prediction remains. Missing visual evidence does not force indefinite scrolling or automatically select Static.
+Mouse-wheel input is ignored for motion prediction. Visual changes caused by an in-game wheel action can still be detected.
+
+Capture and compatibility
+Capture requests Windows permission to hide this session's capture border. Respond to a system prompt if one appears. If unsupported or denied, capture continues with its border. System privacy settings are not changed.
 Uniform walls, blur, camera cuts and weapon/HUD occlusion can affect motion estimation. Input prediction represents intent and cannot precisely determine jumping, wall blocking or cutscene states. Automatic cutscene detection and overlay hiding are not available.
 Multi-monitor/high-DPI support and full Tab navigation are incomplete. Check that the target game permits external overlays.
 Settings are saved to the current Windows user profile. Only the EXE is needed to run; no separate OpenCV, compiler or application DLL installation is required.

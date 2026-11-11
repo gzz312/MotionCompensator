@@ -45,7 +45,8 @@ public:
     bool automatic=true,dynamic=true,visible=true,smoke=false,failed=false;
     bool captureOnly=false,overlayOnly=false,wasOverlayVisible=false;
     int captureRetries=0;double captureRetryAfter=0;
-    double started=qpcSeconds(),lastLog=started,drawMs=0,drawMax=0;
+    double started=qpcSeconds(),lastLog=started,lastFlowLogged=0,drawMs=0,drawMax=0;
+    int previewTargetWidth=0,previewTargetHeight=0;
     uint64_t draws=0,previousFrames=0,rawEvents=0;
     double rawTimestamp=0;
     double previousCpu=0;
@@ -254,7 +255,9 @@ public:
         // A settings preview, not a simulated game. Uses the same mask as the overlay.
         RECT preview{620,158,944,430};HBRUSH dark=CreateSolidBrush(RGB(20,29,44));FillRect(dc,&preview,dark);DeleteObject(dark);
         auto v=visualSettings();
-        int sourceW=1920,sourceH=1080;RECT targetSize{};
+        MONITORINFO monitor{};monitor.cbSize=sizeof(monitor);
+        GetMonitorInfoW(MonitorFromWindow(hwnd,MONITOR_DEFAULTTONEAREST),&monitor);
+        int sourceW=std::max(1L,monitor.rcMonitor.right-monitor.rcMonitor.left),sourceH=std::max(1L,monitor.rcMonitor.bottom-monitor.rcMonitor.top);RECT targetSize{};
         if(selected.handle && GetClientRect(selected.handle,&targetSize) && targetSize.right>0 && targetSize.bottom>0){sourceW=targetSize.right;sourceH=targetSize.bottom;}
         auto scene=mc::buildPreview(v,324,272,sourceW,sourceH);
         for(int x=int(std::ceil(scene.contentLeft));x<int(scene.contentRight);++x){int shade=24+int(196.f*(x-scene.contentLeft)/std::max(1.f,scene.contentRight-scene.contentLeft));HBRUSH bg=CreateSolidBrush(RGB(shade,shade,shade));RECT strip{620+x,158+int(std::ceil(scene.contentTop)),621+x,158+int(std::floor(scene.contentBottom))};FillRect(dc,&strip,bg);DeleteObject(bg);}
@@ -381,8 +384,9 @@ public:
         log<<"# attach_pid="<<entry.pid<<", hwnd="<<reinterpret_cast<uintptr_t>(entry.handle)<<'\n'; log.flush();
         capture.setFlowEnabled(dynamic);
         if(!overlayOnly) capture.start(entry.handle,smoke,debugDirectory);
+        invalidatePreview();
     }
-    void stop() { overlay.hide(); capture.stop(); selected={};driver.reset();inputs.setTarget(nullptr,false); }
+    void stop() { overlay.hide(); capture.stop(); selected={};driver.reset();inputs.setTarget(nullptr,false);invalidatePreview(); }
     void create(HINSTANCE instance) {
         wchar_t path[MAX_PATH]{};GetModuleFileNameW(nullptr,path,MAX_PATH);settingsPath=std::filesystem::path(path).parent_path()/L"settings.ini";
         auto seed=mc::embeddedText(101);std::istringstream initial(seed);mc::readPreferences(initial,preferences);
@@ -483,6 +487,7 @@ public:
         SetTimer(hwnd,1,16,nullptr);
     }
     void tick() {
+        if(smoke)setText(status,L"Software capture check "+std::to_wstring(int(qpcSeconds()*60)));
         double tickTime=qpcSeconds();float dt=float(tickTime-lastTick);lastTick=tickTime;
         if(settingsDirty && tickTime>=saveAfter) flushSettings();
         if(keysMissing()&&tickTime>=nextHotkeyRetry){registerKeys();updateTips();InvalidateRect(shortcutsLabel,nullptr,FALSE);}
@@ -507,6 +512,9 @@ public:
             log<<"# capture_retry="<<captureRetries<<'\n';log.flush();
         }
         capture.setFlowEnabled(dynamic);capture.setBackgroundEnabled(preferences.profiles[preferences.selected].appearance==1||preferences.profiles[preferences.selected].appearance==3);
+        RECT previewTarget{};if(selected.handle&&GetClientRect(selected.handle,&previewTarget)
+            &&(previewTarget.right!=previewTargetWidth||previewTarget.bottom!=previewTargetHeight)){
+            previewTargetWidth=previewTarget.right;previewTargetHeight=previewTarget.bottom;invalidatePreview();}
         auto fresh=capture.snapshot();overlay.setBackground(fresh.running?fresh.light:mc::BackgroundLight{});
         bool inputForeground=selected.handle && foreground==selected.handle && !IsIconic(selected.handle);
         inputs.setTarget(selected.handle,inputForeground);
@@ -515,6 +523,29 @@ public:
         double fusionStart=qpcSeconds();
         auto velocity=driver.update(fresh.motion,input,tickTime,dt,dynamic,inputForeground);
         fusionMs=(qpcSeconds()-fusionStart)*1000;
+        if(log && fresh.motion.completedTimestamp>0 && fresh.motion.completedTimestamp!=lastFlowLogged){
+            lastFlowLogged=fresh.motion.completedTimestamp;
+            const auto& m=fresh.motion;
+            log<<"# flow_sample elapsed_s="<<std::fixed<<std::setprecision(6)<<tickTime-started
+                <<", source_qpc_s="<<m.timestamp<<", source_age_ms="<<(tickTime-m.timestamp)*1000
+                <<", backend="<<(m.analysisWidth<=0?"N/A":m.denseFlow?"DIS_CPU_FAST":"legacy")<<", pair_ms="<<m.pairIntervalMs
+                <<", observed_capture_fps="<<fresh.observedCaptureFps<<", target_analysis_fps="<<fresh.targetAnalysisFps
+                <<", source_readbacks="<<fresh.sourceReadbacks<<", invalid_pairs="<<fresh.invalidPairs<<", readback_call_ms="<<fresh.readbackCallMs
+                <<", analysis_ms="<<fresh.analysisMs<<", dense_pixels="<<m.densePixels
+                <<", issue="<<int(m.issue)<<", sampled="<<m.features<<", tracked="<<m.tracked<<", measured_cells="<<m.observedCells
+                <<", rejected_texture="<<m.rejectedTexture<<", rejected_photo="<<m.rejectedPhotometric
+                <<", rejected_consistency="<<m.rejectedConsistency<<", state="<<int(driver.motionState())
+                <<", source="<<int(driver.source())<<", foreground="<<inputForeground
+                <<", drive_policy=direct_local"
+                <<", direct_cells="<<driver.evidence().directCells<<", quiet_regions="<<driver.evidence().quietRegions<<", motion_veto="<<driver.evidence().motionVeto
+                <<", inferred_regions="<<driver.inferredRegions()<<", protected_regions="<<driver.protectedRegions()<<", broad_motion="<<driver.evidence().broadMotion
+                <<", static_evidence="<<driver.evidence().stationary<<", quiet_cells="<<driver.evidence().quietCells
+                <<", connected_moving_cells="<<driver.evidence().movingCells<<", global_q="<<m.globalConfidence<<", moving_q="<<m.movingBackgroundConfidence<<", regions=";
+            for(int r=0;r<9;++r){auto raw=m.velocity[r],chosen=driver.observedFlow()[r];
+                log<<r<<':'<<raw.x<<':'<<raw.y<<':'<<m.regionConfidence[r]<<':'<<chosen.x<<':'<<chosen.y<<':'<<driver.observedConfidence()[r]<<' ';}
+            log<<'\n';
+        }
+
         const auto& profile=preferences.profiles[preferences.selected];
         float motionGain=profile.gain*(profile.inverted?-1.f:1.f);
         for(auto& v:velocity) {v.x*=motionGain;v.y*=motionGain;}
@@ -523,7 +554,7 @@ public:
             RECT rect{}; GetClientRect(selected.handle,&rect); POINT origin{}; ClientToScreen(selected.handle,&origin); OffsetRect(&rect,origin.x,origin.y);
             auto settings=visualSettings();
             if(showDebug && tickTime-lastDebug>=.1) {
-                mc::DebugSnapshot d;d.input=driver.prediction();d.fused=driver.fused();d.compensation=velocity;d.flow=fresh.motion;d.selectedFlow=driver.observedFlow();d.selectedConfidence=driver.observedConfidence();d.hasSelectedFlow=true;d.backgroundBlend=driver.backgroundBlend();
+                mc::DebugSnapshot d;d.input=driver.prediction();d.fused=driver.fused();d.compensation=velocity;d.flow=fresh.motion;d.selectedFlow=driver.observedFlow();d.selectedConfidence=driver.observedConfidence();d.hasSelectedFlow=true;d.backgroundBlend=driver.backgroundBlend();d.motionState=driver.motionState();d.heldRegions=driver.heldRegions();
                 for(auto& c:d.compensation){c.x=std::clamp(c.x,-1200.f,1200.f);c.y=std::clamp(c.y,-1200.f,1200.f);}
                 d.now=tickTime;d.captureAgeMs=fresh.frames?fresh.ageMs:-1;d.analysisMs=fresh.analyses?fresh.analysisMs:-1;
                 d.fusionMs=fusionMs;d.submitMs=draws?drawMs:-1;d.tickMs=dt*1000;d.staggered=settings.staggered;d.style=settings.style;
@@ -580,15 +611,24 @@ public:
             float offsetMax=0;for(auto v:velocity) offsetMax=std::max(offsetMax,std::hypot(v.x,v.y));
             log<<"# analysis_grid=9x9, analysis_width="<<s.motion.analysisWidth<<", analysis_height="<<s.motion.analysisHeight<<", observed_cells="<<s.motion.observedCells<<", observations="<<s.motion.observations.size()<<", cells=";
             for(int cell=0;cell<81;++cell){const auto& c=s.motion.cells[cell];log<<cell<<':'<<c.samples<<':'<<c.tracked<<':'<<c.inliers<<':'<<c.confidence<<':'<<c.velocity.x<<':'<<c.velocity.y<<':'<<c.smoothed.x<<':'<<c.smoothed.y<<':'<<c.inferred<<' ';}log<<'\n';
+            log<<"# cell_evidence=";for(int i=0;i<81;++i){const auto& c=s.motion.cells[i];log<<i<<':'<<c.directConfidence<<':'<<c.directInliers<<':'<<c.rejectedTexture<<':'<<c.rejectedPhoto<<':'<<c.rejectedConsistency<<':'<<c.directVelocity.x<<':'<<c.directVelocity.y<<' ';}log<<'\n';
             log<<"# brightness_qpc_s="<<s.light.timestamp<<", brightness_updates="<<s.brightnessUpdates<<", brightness_cpu_ms="<<s.brightnessMs<<", brightness_age_ms="<<(s.light.timestamp>0?(now-s.light.timestamp)*1000:-1)<<", appearance="<<visualSettings().appearance<<'\n';
             log<<"# pipeline_completed_qpc_s="<<s.motion.completedTimestamp<<", completed_age_ms="<<(s.motion.completedTimestamp>0?(now-s.motion.completedTimestamp)*1000:-1)<<", flow_fresh="<<mc::motionFresh(s.motion,now)<<", analysis_start_age_ms="<<s.analysisStartAgeMs<<", capture_dropped="<<s.droppedCapture<<", analysis_replaced="<<s.droppedAnalysis<<'\n';
+            int trustedRegions=0;for(int r=0;r<9;++r)if(mc::regionMotionTrusted(s.motion,r,now))++trustedRegions;
+            log<<"# trusted_local_regions="<<trustedRegions<<", stationary_background_rejected="<<driver.stationaryBackgroundRejected()
+                <<", motion_state="<<int(driver.motionState())<<", held_regions="<<driver.heldRegions()
+                <<", driver_source_flow_qpc_s="<<fresh.motion.timestamp<<", driver_source_age_ms="<<(fresh.motion.timestamp>0?(tickTime-fresh.motion.timestamp)*1000:-1)<<'\n';
+            log<<"# analysis_cadence=adjacent_source_pairs_worker30, observed_capture_fps="<<s.observedCaptureFps<<", target_analysis_fps="<<s.targetAnalysisFps<<'\n';
+            log<<"# borderless_state="<<s.borderlessState<<'\n';
+            log<<"# flow_backend="<<(s.motion.analysisWidth<=0?"N/A":s.motion.denseFlow?"DIS_CPU_FAST":"legacy")<<", pair_ms="<<s.motion.pairIntervalMs<<", dense_pixels="<<s.motion.densePixels<<'\n';
+            log<<"# tracking_extra_features="<<s.motion.trackingExtraFeatures<<", pyramid_reused="<<s.motion.pyramidReused<<'\n';
             log<<"# background_blend="<<driver.backgroundBlend()<<", global_confidence="<<s.motion.globalConfidence<<", global_support_cells="<<s.motion.globalSupportCells<<", moving_background_confidence="<<s.motion.movingBackgroundConfidence<<", moving_background_cells="<<s.motion.movingBackgroundSupportCells<<", chosen_flow=";
             for(int r=0;r<9;++r){auto v=driver.observedFlow()[r];log<<r<<':'<<v.x<<':'<<v.y<<':'<<driver.observedConfidence()[r]<<' ';}log<<'\n';
             log<<"# flow_confidence="<<s.motion.confidence<<", analysis_ms="<<s.analysisMs<<", analyses="<<s.analyses<<", history_resets="<<s.flowResets<<", features="<<s.motion.features<<", tracked="<<s.motion.tracked<<", inliers="<<s.motion.inliers<<", issue="<<int(s.motion.issue)<<", mean_delta="<<s.motion.meanDelta<<", dynamic_active="<<effective<<'\n';
             log<<"# input_mouse_events="<<inputs.mouseEvents<<", input_key_events="<<inputs.keyEvents<<", pad_changes="<<inputs.padChanges
                <<", mouse_rate_x="<<input.mouseRate.x<<", mouse_rate_y="<<input.mouseRate.y<<", move_x="<<input.move.x<<", move_y="<<input.move.y
                <<", look_x="<<input.look.x<<", look_y="<<input.look.y<<", pad_connected="<<input.pad<<", drive_source="<<int(driver.source())<<", raw_ready="<<inputs.rawReady
-               <<", mouse_buttons="<<input.mouseButtons<<", wheel="<<input.wheel<<", pad_buttons="<<input.padButtons<<", trigger_l="<<input.triggers.x<<", trigger_r="<<input.triggers.y<<", xinput_available="<<inputs.padApiAvailable()<<'\n';
+               <<", mouse_buttons="<<input.mouseButtons<<", pad_buttons="<<input.padButtons<<", trigger_l="<<input.triggers.x<<", trigger_r="<<input.triggers.y<<", xinput_available="<<inputs.padApiAvailable()<<'\n';
             log<<"# motion_qpc_s="<<s.motion.timestamp<<", motion_age_ms="<<(s.motion.timestamp>0?(now-s.motion.timestamp)*1000:-1)<<", regions=";
             for(size_t r=0;r<9;++r) log<<r<<':'<<s.motion.velocity[r].x<<':'<<s.motion.velocity[r].y<<':'<<s.motion.regionConfidence[r]<<' ';
             log<<", field_speed_max_px_s="<<offsetMax<<", dot_count="<<overlay.dotCount()<<", phase_max_px="<<overlay.phaseMax()<<", style="<<preferences.selected<<", enhancement="<<visualSettings().enhancement<<", boundary_fade="<<visualSettings().boundaryFade<<'\n';log.flush();
@@ -608,7 +648,7 @@ public:
             text<<(chinese?L"目标：":L"Target: ")<<(selected.handle?selected.exe:L"—")<<L"\n"
                 <<styleName(preferences.selected)
                 <<(dynamic&&selected.handle?L" · ":L"")<<(dynamic&&selected.handle?reason:L"")
-                <<L"\n"<<std::fixed<<std::setprecision(1)<<fps<<L" fps | "<<(chinese?L"光流 ":L"Flow ")<<s.motion.confidence
+                <<L"\n"<<std::fixed<<std::setprecision(1)<<fps<<L" fps | "<<(chinese?L"局部有效 ":L"Local valid ")<<trustedRegions<<L"/9"
                 <<L"\n";
             if(selected.handle && !s.running) text<<captureStatus;
             else text<<(chinese?L"分析 ":L"Analysis ")<<s.analysisMs<<L" ms | "<<(chinese?L"速度 ":L"Speed ")<<offsetMax<<L" px/s";

@@ -4,6 +4,8 @@
 
 This preview is not a stable release and has not established general motion-discomfort relief.
 
+- The primary focus is first-person games. Third-person driving, large stationary foregrounds and uniform backgrounds can cause missed motion, excessive speed estimates or interrupted dots; these cases are not specifically optimized.
+- Analysis targets 30 updates/s, not game FPS. Shorter pairs cannot restore blurred detail and may amplify small matching errors into speed jitter.
 - Exclusive fullscreen can hide external overlays; prefer borderless/windowed mode. Compatibility and game/anti-cheat rules vary.
 - Low texture, blur, cuts and weapon/HUD occlusion can reduce optical-flow quality. Input prediction estimates intent, not actual jumping, walking into a wall, driving or cinematic motion.
 - Dynamic styles do not automatically switch to Static. With insufficient observations, the input/dynamic path remains and a waiting/quality status may appear.

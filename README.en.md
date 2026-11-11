@@ -2,11 +2,11 @@
 
 [中文](README.md) | **English**
 
-MotionCompensator is a Windows visual aid designed to help reduce visually induced motion sickness and discomfort during gaming, using customizable dot references and an optional central reticle. Choose regional scrolling, screen-edge scrolling or a static reference, with separate appearance settings, background brightness adaptation, Chinese/English UI and light/dark themes.
+MotionCompensator is a Windows visual aid focused on first-person games, designed to help reduce visually induced motion sickness and discomfort, using customizable dot references and an optional central reticle. Choose regional scrolling, screen-edge scrolling or a static reference, with separate appearance settings, background brightness adaptation, Chinese/English UI and light/dark themes.
 
-**Windows x64 · 0.1.0-preview.2 preview**
+**Windows x64 · 0.1.0-preview.11 preview**
 
-[Download the preview](https://github.com/gzz312/MotionCompensator/releases/download/v0.1.0-preview.2/MotionCompensator-0.1.0-preview.2-win-x64.zip) · [Release notes and checksums](https://github.com/gzz312/MotionCompensator/releases/tag/v0.1.0-preview.2)
+[Download the preview](https://github.com/gzz312/MotionCompensator/releases/download/v0.1.0-preview.11/MotionCompensator-0.1.0-preview.11-win-x64.zip) · [Release notes and checksums](https://github.com/gzz312/MotionCompensator/releases/tag/v0.1.0-preview.11)
 
 ## Three dot styles
 
@@ -49,9 +49,11 @@ The application can run as a single EXE, with instructions and license texts emb
 
 Dots are an optional visual aid. Experiences vary by person and game, and relief from motion discomfort is not guaranteed. Start with a short session and stop if discomfort develops.
 
+Third-person driving, large stationary foregrounds and uniform backgrounds may cause missed motion, excessive estimated speed or interrupted dot motion. These scenarios have not been specifically optimized.
+
 Exclusive fullscreen can hide the overlay. Strong motion blur, camera cuts and weapon/HUD occlusion can affect motion estimation. Multi-monitor/high-DPI support and full keyboard navigation still need improvement; see [known issues](docs/en/KNOWN-ISSUES.md).
 
-The app captures windows externally with Windows Graphics Capture and drives the dots with grayscale optical flow and keyboard/mouse/controller input prediction. It uses no hooks, DLL injection, game-memory reading or anti-cheat bypasses. Check that the target game permits external overlays before use.
+The app captures windows externally with Windows Graphics Capture and drives the dots with local grayscale dense optical flow and keyboard/mouse/controller input prediction. Capture continuously updates adjacent images while analysis targets 30 updates/s; actual throughput depends on delivered frames and processing capacity. It uses no hooks, DLL injection, game-memory reading or anti-cheat bypasses. Check that the target game permits external overlays before use.
 
 ## Reporting issues
 

@@ -15,12 +15,20 @@ struct FlowObservation {
     float error=0,roundTripError=0;
     int cell=0;
     bool valid=false,anchor=false;
+    Vec2 originalDisplacement{};
+    bool originalValid=false;
+    uint8_t failure=0; // Rejection bits: texture/photo/consistency.
 };
 struct FlowCell {
     Vec2 velocity{},smoothed{}; // Source pixels/second; raw and neighbourhood result.
     float confidence=0;
     int samples=0,anchors=0,tracked=0,inliers=0;
     bool inferred=false;
+    Vec2 directVelocity{};
+    float directConfidence=0;
+    int directInliers=0;
+    int rejectedTexture=0,rejectedPhoto=0,rejectedConsistency=0;
+
 };
 struct MotionSample {
     std::array<Vec2, 9> velocity{}; double timestamp{},completedTimestamp{}; float confidence{};
@@ -34,6 +42,14 @@ struct MotionSample {
     std::array<Vec2,9> globalVelocity{},movingBackgroundVelocity{};
     float globalConfidence=0,movingBackgroundConfidence=0;
     int globalSupportCells=0,movingBackgroundSupportCells=0;
+    std::array<int,9> globalRegionSupport{},movingRegionSupport{};
+    int trackingExtraFeatures=0;
+    bool pyramidReused=false;
+    bool denseFlow=false;
+    int densePixels=0,rejectedTexture=0,rejectedPhotometric=0,rejectedConsistency=0;
+    double pairIntervalMs=0;
+    bool directEvidence=false;
+
 };
 inline bool motionFresh(const MotionSample& sample,double now) {
     if(!std::isfinite(now)||!std::isfinite(sample.timestamp)||sample.timestamp<=0||now<sample.timestamp)return false;
@@ -42,6 +58,23 @@ inline bool motionFresh(const MotionSample& sample,double now) {
     if(sample.completedTimestamp==0)return now-sample.timestamp<=.1;
     return std::isfinite(sample.completedTimestamp) && sample.completedTimestamp>=sample.timestamp && now>=sample.completedTimestamp
         && now-sample.timestamp<=.2 && now-sample.completedTimestamp<=.12;
+}
+inline bool regionalFlowEvidence(const MotionSample& sample) {
+    // Legacy producers report one whole-frame quality. The spatial tracker
+    // additionally publishes measured regional evidence even at low coverage.
+    return (std::isfinite(sample.confidence)&&sample.confidence>=.65f)
+        || (sample.analysisWidth>0&&sample.analysisHeight>0&&sample.features>=sample.tracked
+            &&sample.tracked>0&&sample.observedCells>0
+            &&sample.issue!=MotionIssue::InvalidInput&&sample.issue!=MotionIssue::Warming);
+}
+inline bool regionMotionTrusted(const MotionSample& sample,int region,double now) {
+    if(region<0||region>=9||!motionFresh(sample,now)||!regionalFlowEvidence(sample))return false;
+    auto v=sample.velocity[region];float q=sample.regionConfidence[region];
+    return std::isfinite(q)&&q>=.65f&&std::isfinite(v.x)&&std::isfinite(v.y);
+}
+inline bool anyRegionMotionTrusted(const MotionSample& sample,double now) {
+    for(int region=0;region<9;++region)if(regionMotionTrusted(sample,region,now))return true;
+    return false;
 }
 // All timestamps use QPC seconds. Future estimators publish the latest sample only.
 class MotionFilter {

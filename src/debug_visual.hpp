@@ -44,10 +44,14 @@ inline DebugScene buildDebugScene(const DebugHistory& history,bool chinese,size_
     std::array<Color,4> colors{cyan,amber,purple,green};
     auto names=chinese?std::array{L"输入预测",L"驱动光流",L"融合运动",L"点阵运动"}:std::array{L"Input",L"Drive flow",L"Fused",L"Dots"};
     for(int i=0;i<4;++i){s.rects.push_back({12.f+i*111,35,7,7,colors[i],1});label(24.f+i*111,29,names[i],colors[i]);}
-    bool ready=d.hasSelectedFlow?std::any_of(d.selectedConfidence.begin(),d.selectedConfidence.end(),[](float q){return std::isfinite(q)&&q>=.65f;}):d.flow.confidence>=.65f;
+    bool ready=d.hasSelectedFlow?std::any_of(d.selectedConfidence.begin(),d.selectedConfidence.end(),[](float q){return std::isfinite(q)&&q>=.65f;}):anyRegionMotionTrusted(d.flow,d.now);
     const wchar_t* state=d.flow.timestamp<=0?(chinese?L"暂无分析结果":L"No analysis result"):!freshDebugFlow(d)?(chinese?L"结果过期":L"Result expired"):!ready?(chinese?L"可信度/覆盖不足":L"Low confidence/coverage"):(chinese?L"光流可用于补偿":L"Flow ready for fusion");
     std::wstring stateLabel=state;
-    if(d.hasSelectedFlow)stateLabel+=(chinese?L"  · 背景权重 ":L" | Background ")+debugNumber(d.backgroundBlend*100,0)+L"%";
+    if(d.hasSelectedFlow){
+        stateLabel=motionStateName(d.motionState,chinese);
+        if(d.heldRegions>0)stateLabel+=(chinese?L" · 延续 ":L" | Held ")+std::to_wstring(d.heldRegions);
+        stateLabel+=(chinese?L" · 局部光流":L" | Local flow");
+    }
     label(12,51,stateLabel,ready && freshDebugFlow(d)?green:amber);
     bool fresh=freshDebugFlow(d);
     auto arrow=[&](Vec2 origin,Vec2 v,Color c,bool valid){
@@ -65,15 +69,20 @@ inline DebugScene buildDebugScene(const DebugHistory& history,bool chinese,size_
         float x=12.f+(r%3)*146,y=74.f+(r/3)*66;
         s.rects.push_back({x,y,142,62,{.18f,.24f,.32f},.48f});
         label(x+5,y+2,L"R"+std::to_wstring(r+1),muted);
-        bool confidence=fresh && std::isfinite(d.flow.confidence) && std::isfinite(d.flow.regionConfidence[r]);
-        float q=confidence?std::clamp(d.hasSelectedFlow?d.selectedConfidence[r]:std::min(d.flow.confidence,d.flow.regionConfidence[r]),0.f,1.f):0;
-        label(x+95,y+2,confidence?debugNumber(q*100,0)+L"%":L"N/A",confidence?ink:muted);
+        if(d.flow.directEvidence&&fresh){int direct=0;
+            for(int yy=r/3*3;yy<r/3*3+3;++yy)for(int xx=r%3*3;xx<r%3*3+3;++xx){const auto& c=d.flow.cells[yy*9+xx];
+                if(c.directConfidence>=.65f)++direct;}
+            label(x+30,y+2,L"D"+std::to_wstring(direct),muted);
+        }
+        bool confidence=fresh && (d.hasSelectedFlow?std::isfinite(d.selectedConfidence[r]):regionalFlowEvidence(d.flow)&&std::isfinite(d.flow.regionConfidence[r]));
+        float q=confidence?std::clamp(d.hasSelectedFlow?d.selectedConfidence[r]:d.flow.regionConfidence[r],0.f,1.f):0;
+        label(x+107,y+2,confidence?debugNumber(q*100,0)+L"%":L"N/A",confidence?ink:muted);
         s.rects.push_back({x+5,y+56,132,2,{.3f,.34f,.4f},1});
         if(confidence)s.rects.push_back({x+5,y+56,132*q,2,q>=.65f?green:amber,1});
         std::array<Vec2,4> vectors{d.input[r],d.hasSelectedFlow?d.selectedFlow[r]:d.flow.velocity[r],d.fused[r],d.compensation[r]};
         for(int i=0;i<4;++i)arrow({x+25.f+i*30,y+35},vectors[i],colors[i],i!=1 || (confidence && q>=.65f));
     }
-    label(12,275,chinese?L"色条：光流可信度；灰短线：数据不可用":L"Bar: flow confidence; grey dash: unavailable",muted);
+    label(12,275,d.flow.directEvidence?(chinese?L"D：直接观测格数 · 缺测不借用邻区向量":L"D: directly observed cells | No spatial borrowing"):(chinese?L"色条：光流可信度；灰短线：数据不可用":L"Bar: flow confidence; grey dash: unavailable"),muted);
     if(d.style==1)label(12,293,chinese?L"屏边取自 R4 / R6 / R2 / R8":L"Edge sources: R4 / R6 / R2 / R8",muted);
     else label(12,293,(chinese?L"可见点数 ":L"Visible dots ")+std::to_wstring(dots)+(chinese?L"  ·  输入为映射估计":L"  |  Input is an estimate"),muted);
     auto graph=[&](float top,int kind){

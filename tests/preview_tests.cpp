@@ -39,6 +39,20 @@ int main() {
         for(int y=0;y<312;++y)for(int x=0;x<364;++x)if(x<20+int(std::ceil(scene.contentLeft))||x>=20+int(std::floor(scene.contentRight))||y<20+int(std::ceil(scene.contentTop))||y>=20+int(std::floor(scene.contentBottom)))require(GetPixel(outer,x,y)==RGB(211,23,137),"all three styles are strictly clipped to their preview box");
     }
     SelectObject(outer,outerOld);DeleteObject(outerBitmap);DeleteObject(sentinel);DeleteDC(outer);
+    // Exercise the real window's anisotropic mapping, not only a 1:1 HDC.
+    HDC mapped=CreateCompatibleDC(nullptr);BITMAPINFO mapInfo=info;mapInfo.bmiHeader.biWidth=720;mapInfo.bmiHeader.biHeight=-560;void* mapPixels=nullptr;
+    HBITMAP mapBitmap=CreateDIBSection(mapped,&mapInfo,DIB_RGB_COLORS,&mapPixels,nullptr,0);auto mapOld=SelectObject(mapped,mapBitmap);
+    for(float scale:{.65f,1.f,1.5f})for(int style=0;style<3;++style){
+        auto bytes=static_cast<unsigned int*>(mapPixels);std::fill(bytes,bytes+720*560,0x00d31789u);
+        SetMapMode(mapped,MM_ANISOTROPIC);SetWindowExtEx(mapped,1000,1000,nullptr);SetViewportExtEx(mapped,int(scale*1000),int(scale*1000),nullptr);SetViewportOrgEx(mapped,17,23,nullptr);
+        auto v=actualSettings;v.style=style;auto scene=mc::buildPreview(v);paintPreview(mapped,{0,0},scene);GdiFlush();
+        require(GetMapMode(mapped)==MM_ANISOTROPIC,"preview restores caller mapping at non-unit scale");
+        int changed=0;
+        for(int y=0;y<560;++y)for(int x=0;x<720;++x)if((bytes[y*720+x]&0x00ffffffu)!=0x00d31789u){
+            ++changed;require(x>=16&&y>=22&&x<=18+int(scene.width*scale)&&y<=24+int(scene.height*scale),"scaled preview pixels remain in the device-space preview rectangle");}
+        require(changed>30,"all three preview styles remain visible at real UI scales");
+    }
+    SelectObject(mapped,mapOld);DeleteObject(mapBitmap);DeleteDC(mapped);
     prefs.reticleSize=64;std::stringstream file;mc::writePreferences(file,prefs);mc::Preferences loaded;
     require(mc::readPreferences(file,loaded) && loaded.reticleSize==64,"expanded crosshair size survives saving and reload");
     auto large=mc::buildPreview(mc::visualSettingsFromPreferences(loaded),324,272,324,272);

@@ -7,7 +7,7 @@
 #include <mutex>
 #include <string>
 #include <filesystem>
-struct CaptureStats { uint64_t frames{},droppedCapture{},droppedAnalysis{}; double timestamp{}, received{}, ageMs{}; int width{}, height{}; uint64_t brightnessUpdates=0;double brightnessMs=0;mc::BackgroundLight light{}; mc::MotionSample motion{}; double analysisMs{},analysisStartAgeMs{}; uint64_t analyses{},flowResets{}; bool running{}; std::string status="Not started"; };
+struct CaptureStats { uint64_t frames{},droppedCapture{},droppedAnalysis{},sourceReadbacks{},invalidPairs{}; double timestamp{}, received{}, ageMs{},readbackCallMs{}; int width{}, height{}; uint64_t brightnessUpdates=0;double brightnessMs=0;mc::BackgroundLight light{}; mc::MotionSample motion{}; double analysisMs{},analysisStartAgeMs{},observedCaptureFps{},targetAnalysisFps{}; uint64_t analyses{},flowResets{}; bool running{}; std::string borderlessState="not_requested"; std::string status="Not started"; };
 class Capture {
     std::jthread thread_;
     std::atomic<bool> flowEnabled_{true},backgroundEnabled_{true},diagnosticRecording_{false};
