@@ -1,42 +1,23 @@
-# 版本记录
+# 版本记录 / Changelog
 
-## 0.1.0-preview.2 — 预览更新（2026-11-10）
+## 0.1.0-preview.2 — 准星与界面更新（2026-11-10）
 
-- 准星改为八个紧凑的横排图标按钮，支持关闭、十字、菱十字、圆点、圆环、留空十字、T形、菱形；旧配置的0–2编号保持兼容。
-- 图标、预览与浮层共用准星几何定义，保留颜色、透明度与尺寸调整。
-- 更新中英文使用说明，补充准星选择和尺寸含义。
-- 修复切换语言后复选框使用原生绘制路径而出现深色主题黑字、白色方框的问题。
-- Windows资源和清单版本修订号由VERSION读取。打包优先选用对应版本的发布说明。
-- 完善中英文使用说明与致谢；新版准星的游戏内体验仍待进一步验证。
+- 新增圆点、圆环、留空十字、T形和菱形准星，连同十字、菱十字及关闭选项，通过横排图标按钮切换。
+- 准星颜色、透明度及大小继续可调，已有设置保持兼容，切换点阵方案保留准星选择。
+- 修复切换语言后深色主题复选框出现黑字、白框的问题。
+- 使用说明补充准星样式、尺寸含义和操作方法。
+
+采集、光流与点阵运动算法保持不变。详见[发布说明](RELEASE-0.1.0-preview.2.md)。
+
+Reticle styles now use compact icon buttons, with additional Dot, Ring, Open cross, T-shape and Diamond options. Existing settings remain compatible. Dark-theme checkboxes render correctly after language changes, and the guide explains reticle selection and size. Capture, optical flow and dot-motion algorithms are unchanged.
 
 ## 0.1.0-preview.1 — 首个公开预览版（2026-11-08）
 
-- 从此前内部开发编号重新整理为0.1.0-preview.1，功能不回退；源码和Windows预览包已公开发布，见[版本发布页](https://github.com/gzz312/MotionCompensator/releases/tag/v0.1.0-preview.1)。
-- 加入《MotionCompensator 源码公开与商业集成许可 1.0》：署名商业集成允许，独立/换皮售卖及单独收费解锁禁止。
-- 完整许可内置EXE、使用说明和分发包，第三方许可独立保留。
-- 主标题、EXE版本、清单、包目录及源码导出统一新编号，保留旧版记录。
+- 提供分区点阵、屏边点阵和4×4静态点阵，支持独立外观设置、交错排布和背景适配。
+- 使用外部窗口采集、灰度光流与键鼠/手柄输入预测驱动动态点阵。
+- 提供中央准星、中英界面、明暗主题、调试可视化与可选日志。
+- 使用说明、项目许可、设计致谢与第三方声明内置于程序，并随分发包提供。
 
-## 0.17.0-preview.1 — 内部本地预览候选（历史编号）
+First public preview with Regional, Screen-edge and 4×4 Static dots, independent appearance settings, background adaptation, an optional reticle, Chinese/English UI, themes and opt-in diagnostics. Dynamic dots use external window capture, grayscale optical flow and input prediction. Instructions and license notices are included in the application and release package.
 
-- 冻结新功能，整理使用说明、已知问题、隐私说明、测试方法和设计致谢。
-- 内置MotionStabilizer原作者/项目/视频链接及有范围限定的源码比对结论。
-- 当时项目许可尚未确定，补齐静态编译器运行库声明；后续0.1.0-preview.1已采用根目录LICENSE.txt中的自定义许可。
-- 修复静态交错点在极端设置下侵入中央留空，保留16点及外列柔边。
-- 构建从PATH/参数发现工具，版本由VERSION生成标题与资源。
-- 提供干净源码导出、本地预览ZIP及EXE校验值；旧版与原始记录本地保留。
-
-## 0.16.1
-
-修复切换点阵时背景适配下拉框重建造成的闪白路径：相同选项复用，更新时抑制原生直接绘制。
-
-## 0.16
-
-统一标签/按钮的缓冲绘制，取消提前擦除背景；恢复实时缩放，处理自绘窗口激活白边。
-
-## 0.15系列
-
-加入主题、按需日志、错误颜色和悬停提示。过程中出现还原/缩放/文档闪烁回归，后续版本调整；不将这些中间版本作为稳定版。
-
-## 0.14系列及更早
-
-建立三种点阵、4×4静态参照、输入/光流融合、交错周期、背景明暗/描边适配和使用说明。详细工程阶段见DEVELOPMENT.md；完整历史记录保留在本地工作区。
+[发布说明 / Release notes](RELEASE-PREVIEW.md) · [下载 / Downloads](https://github.com/gzz312/MotionCompensator/releases)

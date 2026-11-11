@@ -1,26 +1,29 @@
-# 开发过程摘要
+# 架构与实现 / Architecture
 
-本文件概述核心模块的演进与工程约束。各版本变更见HISTORY.md，构建与验证方法见BUILD.md和TESTING.md。
+## 中文
 
-- 初始阶段：Win32窗口选择、WGC采集、Direct2D/DirectComposition外部透明浮层。禁止Hook、注入与进程内存读取。
-- 动态阶段：键鼠/手柄只读观察、灰度光流与输入预测融合，持续分区滚动；动态方案不自动切成静态。
-- 空间与表现：交错布局、双行周期、中心留空、屏边渐隐及固定邻点大小差异；反向只改变积分方向。
-- 视觉适配：固定4×4静态点，左右外列柔边；灰度亮度采样、同色相明暗及双层描边。
-- 可观测性：统一调试可视化，手动日志开关、容量轮转、状态与悬停提示。
-- UI阶段：圆角控件、中英切换、浅深主题；适配状态及尚存限制见KNOWN-ISSUES.md。
-- 0.16.1：背景适配/屏边选项复用，暂停原生组合框数据更新时的直接绘制。
-- 发布前本地候选整理：版本与资源统一、构建入口去除本机固定路径、内置设计参考和许可状态、补齐静态运行库声明、修复静态中央留空约束、筛选公开文件。
+MotionCompensator 使用 Windows 原生 C++20，实现外部窗口采集、运动估计和透明点阵浮层。
 
-## 验证原则
+- **窗口与采集**：Win32提供窗口选择与前台目标识别，Windows Graphics Capture提供游戏画面。
+- **运动估计**：灰度光流与只读键鼠/手柄输入观察共同驱动动态点阵。输入代表操作意图，不等同于角色或车辆的实际运动。
+- **点阵渲染**：Direct2D与DirectComposition绘制透明、鼠标穿透的浮层，提供分区滚动、屏边滚动与固定4×4静态参照。静态方案由用户选择。
+- **外观适配**：点阵颜色、大小、透明度、布局与准星可调；背景亮度采样支持同色相明暗变化及双层描边。
+- **诊断与界面**：提供中英界面、明暗主题、统一调试可视化、可选日志、错误状态与悬停提示。
 
-自动检查、桌面自采集与游戏内体验分别记录。自动检查覆盖工程行为，游戏内效果另行评价；版本说明区分已验证项目、已知限制与规划功能。
+程序不使用Hook、DLL注入、游戏进程内存读取或反作弊绕过。具体兼容性及限制见[已知问题](KNOWN-ISSUES.md)。
 
-## 参考来源
+软件检查用于验证工程行为，游戏内体验需独立评价，不能将构建或自动检查结果当作晕动缓解效果的证明。[构建说明](BUILD.md) · [测试方法](TESTING.md) · [版本记录](HISTORY.md)
 
-设计参考与源码比对范围见CREDITS.md和REFERENCE-CODE-AUDIT-2026-11-08.md。未把设计参考描述为原作者参与或背书。
+设计来源及比对范围见[致谢](CREDITS.md)和[参考代码比对记录](REFERENCE-CODE-AUDIT-2026-11-08.md)。参考项目作者的署名不表示其参与开发或为本项目背书。
 
-## 发布状态
+## English
 
-项目采用自定义源码公开与商业集成许可：署名商业集成被允许，独立售卖被禁止。GitHub仓库：https://github.com/gzz312/MotionCompensator。源码与0.1.0-preview.1预览包均已公开发布，见[版本发布页](https://github.com/gzz312/MotionCompensator/releases/tag/v0.1.0-preview.1)。
+MotionCompensator is a native Windows C++20 application for external window capture, motion estimation and transparent visual overlays.
 
-对外版本从0.1.0-preview.1重新编号；此前0.14–0.17等编号保留为内部开发历史，不代表功能回退。后续预览修订递增preview编号，正式版去除预览后缀。
+- Win32 supplies window selection and foreground-target detection; Windows Graphics Capture supplies images.
+- Grayscale optical flow and read-only keyboard/mouse/controller observations drive dynamic dots. Input indicates intent, not actual character or vehicle motion.
+- Direct2D and DirectComposition render a transparent, click-through overlay with Regional, Screen-edge and user-selected 4×4 Static styles.
+- Adjustable dot/reticle appearance and background brightness sampling support same-hue brightness changes and layered outlines.
+- The interface includes Chinese/English labels, themes, visual diagnostics, opt-in logs, error states and hover help.
+
+No hooks, DLL injection, game-memory reading or anti-cheat bypasses are used. See [known issues](en/KNOWN-ISSUES.md) for compatibility limits. Software checks validate implementation behavior and do not establish motion-discomfort relief. See the [build guide](en/BUILD.md), [testing guide](en/TESTING.md), [changelog](HISTORY.md) and [credits](en/CREDITS.md).

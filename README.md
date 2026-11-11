@@ -74,7 +74,7 @@ GIF经过缩放和压缩，用于展示点阵外观与运动方式。详细拍�
 ./package.ps1 -OpenCVRoot '<OpenCV静态安装目录>'
 ```
 
-依赖准备及完整步骤见[构建说明](docs/BUILD.md)。[测试说明](docs/TESTING.md) · [版本记录](docs/HISTORY.md) · [开发记录](docs/DEVELOPMENT.md)
+依赖准备及完整步骤见[构建说明](docs/BUILD.md)。[测试说明](docs/TESTING.md) · [版本记录](docs/HISTORY.md) · [架构说明](docs/DEVELOPMENT.md)
 
 ## 参考与致谢
 

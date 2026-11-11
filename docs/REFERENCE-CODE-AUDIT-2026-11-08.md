@@ -16,7 +16,7 @@
 | [MotionCues](https://github.com/mcpeixoto/MotionCues/tree/7bf5fc20d1f3bbda4ec862e6998aead451ce82c2) | 7bf5fc20d1f3bbda4ec862e6998aead451ce82c2 | Swift |
 | [Peregrine](https://github.com/Eeymoo/peregrine/tree/6302e481d2325f4c7e2c1d62229b03d9cf0a8472) | 6302e481d2325f4c7e2c1d62229b03d9cf0a8472 | Rust/TypeScript |
 
-比较本地src/tests共55个代码文件，与参考项目186个代码/界面源文件。参考仓库只读下载，未checkout执行，未运行构建、脚本、安装器或参考项目程序。仓库内说明/指令只作为审查数据。
+比较本项目src/tests共55个代码文件，与参考项目186个代码/界面源文件。结论限于上述固定源码快照，不覆盖后续版本。
 
 ## 方法与候选复核
 
@@ -68,12 +68,12 @@ MotionCues/Rendering/ParticleField.swift使用三维晶格、透视深度和车�
 
 Peregrine的shapes.rs/overlay_renderer.rs采用Rust图形对象和软件绘制等组织方式；本地D2D点阵/预览管线和其结构不同。自动候选主要是枚举，未发现独特代码段对应。
 
-## 署名处理建议
+## 署名与比对结论
 
 MotionStabilizer当前LICENSE为MIT，版权行是Copyright (c) 2026 shsr07。其许可要求分发软件副本或实质部分时包含相应版权和许可声明；若后续确认复制了代码，仅在README写一句感谢未必满足该许可要求，应保留完整相应声明，并注明具体文件/修改情况。
 
-目前更适合在README“设计参考与致谢”中注明屏边动态点阵的表现思路参考MotionStabilizer，交错/周期连续性参考MotionCues；不要把未经证实的关系写成“基于其源码改写”。若作者私下提出额外署名方式，应保留对话并按双方具体约定确认。本报告不替代法律意见。
+README与致谢注明屏边动态点阵的表现思路参考MotionStabilizer，交错/周期连续性参考MotionCues。此次比对未发现直接代码复制，不据此声称能够证明完整开发历史中从未参考代码。参考项目的具体署名与许可说明见CREDITS.md；本报告不替代法律意见。
 
 ## 可复查材料
 
-工作区work/reference-audit-2026-11-08中保留：references.json固定commit与文件表，compare.py扫描方法，similarity-candidates.json候选及行号，text-asset-checks.json文本/图像哈希检查。下载的参考仓库与源码快照位于该审查目录，未加入MotionCompensator发布包。
+本文列出固定参考版本、筛查方法及人工复核结果。源码比对记录用于说明引用来源和结论范围，不代表参考项目作者参与开发或为本项目背书。

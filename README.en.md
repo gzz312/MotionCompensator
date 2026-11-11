@@ -74,7 +74,7 @@ Validated with Windows x64, MSYS2 UCRT64 GCC15.2, CMake, Ninja and matching stat
 ./package.ps1 -OpenCVRoot '<static OpenCV installation>'
 ```
 
-See the [build guide](docs/en/BUILD.md) for dependencies and complete instructions. [Testing](docs/en/TESTING.md) · [Version history (Chinese)](docs/HISTORY.md) · [Development record (Chinese)](docs/DEVELOPMENT.md)
+See the [build guide](docs/en/BUILD.md) for dependencies and complete instructions. [Testing](docs/en/TESTING.md) · [Changelog](docs/HISTORY.md) · [Architecture](docs/DEVELOPMENT.md)
 
 ## References and thanks
 

@@ -24,7 +24,7 @@ This preview adds reticle styles and icon selection, with revised bilingual inst
 - Blue marks the selected style; hover for its name and help. Existing color, transparency and size controls remain shared and saved automatically.
 - Existing Off/Cross/Diamond-cross preferences keep their original IDs. Changing dot styles preserves the reticle.
 - Icons, the preview and the overlay share the same geometry. Reticles are fixed center references, not recoil or impact indicators.
-- Both guides, credits and quick-start documents use concise user-facing descriptions of controls, reticles, diagnostics and common problems.
+- The bilingual guide explains reticle selection, size, diagnostics and common problems, with quick-start instructions included in the download.
 - Checkbox translation updates use themed painting to avoid dark-theme black text and white boxes.
 - The application title, EXE resource and manifest revision derive from VERSION.
 
@@ -40,6 +40,6 @@ Capture, optical flow and dot-motion algorithms are unchanged. Software checks d
 - FileVersion/ProductVersion 为 0.1.0-preview.2，Windows数值版本为 0.1.0.2。
 - 新版准星的游戏内显示、端到端延迟与舒适度效果尚未验证。
 
-Built with UCRT64 GCC 15.2 and static OpenCV 4.12. All 17 CTest checks passed. Desktop checks covered icon selection and preview updates, persistence after restart, bilingual labels, theme cycling and guide loading. No in-game comfort or performance claim is made for this candidate.
+Built with UCRT64 GCC 15.2 and static OpenCV 4.12. All 17 CTest checks passed. Desktop checks covered icon selection and preview updates, persistence after restart, bilingual labels, theme cycling and guide loading. These checks do not establish in-game comfort or performance benefits.
 
 EXE SHA256: `D186F63FB3C427AC9965C61275C6E6308D1DCD82866428E99930661128598C4F`.
