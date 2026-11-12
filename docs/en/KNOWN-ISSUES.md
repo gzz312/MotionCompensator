@@ -16,3 +16,5 @@ This preview is not a stable release and has not established general motion-disc
 - Logs require a writable directory beside the EXE. Failure is reported without silently writing elsewhere.
 - The grayscale OpenCV backend exists. NVIDIA optical flow, RGB flow, AI segmentation/prediction and official game telemetry are not implemented.
 - Only the Windows/UCRT64 build is validated. MSVC, different GPUs and extended game sessions need broader testing.
+
+The settings window still scales proportionally, with independently scrollable settings content. Small-screen, high-DPI and multi-monitor adaptation remain incomplete. Software checks do not guarantee flicker-free operation or fixed input latency on every system.

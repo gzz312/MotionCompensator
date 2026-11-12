@@ -4,9 +4,23 @@
 
 MotionCompensator 是一款主要面向第一人称游戏、旨在缓解 3D 眩晕与晕动不适的 Windows 视觉辅助工具，通过点阵参照与可选的中央准星，帮助改善游玩时的视觉体验。提供分区滚动、屏边滚动和静态三种方案，可分别调整外观，支持背景明暗适配、中英界面及明暗主题。
 
-**Windows x64 · 0.1.0-preview.11 预览版**
+**Windows x64 · 0.1.0-preview.14 预览版**
 
-[下载预览版](https://github.com/gzz312/MotionCompensator/releases/download/v0.1.0-preview.11/MotionCompensator-0.1.0-preview.11-win-x64.zip) · [发布说明与校验文件](https://github.com/gzz312/MotionCompensator/releases/tag/v0.1.0-preview.11)
+[下载预览版](https://github.com/gzz312/MotionCompensator/releases/download/v0.1.0-preview.14/MotionCompensator-0.1.0-preview.14-win-x64.zip) · [发布说明与校验文件](https://github.com/gzz312/MotionCompensator/releases/tag/v0.1.0-preview.14)
+
+## 设置界面
+
+连接游戏位于顶部，左侧提供外观预览，右侧通过“点阵 / 准星”切换设置页。三种点阵采用分段选择，参数按外观和运动分组；内容超出高度时可滚轮滚动或拖动滚动条。页面导航和预览保持固定。
+
+滑块拖动时优先更新滑钮及当前数值，预览合并刷新并在松手后同步最终状态。设置继续自动保存，三种点阵保留独立配置。
+
+![浅色设置界面](assets/ui/workbench-light.png)
+
+<details><summary>深色界面</summary>
+
+![深色设置界面](assets/ui/workbench-dark.png)
+
+</details>
 
 ## 三种点阵方案
 
@@ -34,8 +48,8 @@ GIF经过缩放和压缩，用于展示点阵外观与运动方式。详细拍�
 
 1. 下载并解压预览包，运行 `MotionCompensator.exe`。无需安装 OpenCV 或编译器。
 2. 启动游戏，优先使用无边框或窗口模式。保持“自动识别前台游戏”开启，切回游戏即可自动连接已识别的游戏；也可刷新窗口列表，手动选择游戏窗口并连接。
-3. 选择点阵方案，调整外观。切回游戏查看浮层，切出游戏时浮层隐藏。
-4. 按需启用中央准星。界面顶部的“中文 / English”按钮可切换语言，主题按钮可切换浅色、深色或跟随系统。
+3. 在右侧“点阵”页选择方案，按外观和运动分组调整设置；内容较多时滚动右侧区域。切回游戏查看浮层，切出游戏时浮层隐藏。
+4. 在右侧“准星”页按需启用中央准星。界面顶部的“中文 / English”按钮可切换语言，主题按钮可切换浅色、深色或跟随系统。
 
 | 快捷键 | 功能 |
 | --- | --- |

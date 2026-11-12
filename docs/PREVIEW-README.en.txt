@@ -25,3 +25,5 @@ See en/KNOWN-ISSUES.md. Experiences vary by person and game;
 stop if discomfort develops. Non-system dependencies are embedded in the EXE;
 Windows must still provide the system graphics components. No separate
 OpenCV installation, compiler or application DLLs are needed.
+
+Interface: connect a game at the top and preview on the left. Switch Dots / Reticle on the right. Dot settings are grouped by style, appearance and motion; scroll when content overflows. Logging and diagnostics are at the bottom.

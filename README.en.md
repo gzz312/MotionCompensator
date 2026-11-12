@@ -4,9 +4,23 @@
 
 MotionCompensator is a Windows visual aid focused on first-person games, designed to help reduce visually induced motion sickness and discomfort, using customizable dot references and an optional central reticle. Choose regional scrolling, screen-edge scrolling or a static reference, with separate appearance settings, background brightness adaptation, Chinese/English UI and light/dark themes.
 
-**Windows x64 · 0.1.0-preview.11 preview**
+**Windows x64 · 0.1.0-preview.14 preview**
 
-[Download the preview](https://github.com/gzz312/MotionCompensator/releases/download/v0.1.0-preview.11/MotionCompensator-0.1.0-preview.11-win-x64.zip) · [Release notes and checksums](https://github.com/gzz312/MotionCompensator/releases/tag/v0.1.0-preview.11)
+[Download the preview](https://github.com/gzz312/MotionCompensator/releases/download/v0.1.0-preview.14/MotionCompensator-0.1.0-preview.14-win-x64.zip) · [Release notes and checksums](https://github.com/gzz312/MotionCompensator/releases/tag/v0.1.0-preview.14)
+
+## Settings interface
+
+Connect a game at the top, view the appearance preview on the left and switch between Dots and Reticle settings on the right. Dot styles use a segmented selector, with appearance and motion settings grouped below. Scroll overflowing content with the wheel or scrollbar; page navigation and the preview remain fixed.
+
+Dragging prioritizes the thumb and current value. Preview updates are coalesced and synchronized to the final value on release. Settings remain automatically saved, with independent dot profiles.
+
+![Light settings interface](assets/ui/workbench-light.png)
+
+<details><summary>Dark interface</summary>
+
+![Dark settings interface](assets/ui/workbench-dark.png)
+
+</details>
 
 ## Three dot styles
 
@@ -34,8 +48,8 @@ The GIF is scaled and compressed to illustrate the dots' appearance and movement
 
 1. Download and extract the preview ZIP, then run `MotionCompensator.exe`. No OpenCV or compiler installation is needed.
 2. Start a game, preferably in borderless/windowed mode. Leave automatic foreground-game detection enabled and switch to a recognized game, or refresh the window list and select the game window manually.
-3. Choose a dot style and adjust its appearance. The overlay appears over the target game and hides when you switch away.
-4. Enable the central reticle if desired. Use the **中文 / English** button to change the interface language and the theme button to cycle light, dark and system themes.
+3. Choose a style on the Dots page. Adjust the appearance and motion groups; scroll the right-hand area when necessary. The overlay appears over the target game and hides when you switch away.
+4. Open the Reticle page to enable and adjust the central reticle if desired. Use the **中文 / English** button to change the interface language and the theme button to cycle light, dark and system themes.
 
 | Shortcut | Action |
 | --- | --- |

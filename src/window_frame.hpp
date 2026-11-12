@@ -4,11 +4,11 @@ namespace mc {
 // Only the app's own panel uses this caption. Keep minimize and close without
 // Windows reserving a disabled maximize button between them.
 inline constexpr DWORD PanelWindowStyle=WS_POPUP|WS_THICKFRAME|WS_SYSMENU|WS_MINIMIZEBOX|WS_CLIPCHILDREN;
-// Fit the 984x1050 settings design uniformly, leaving the taskbar/work-area clear.
+// Fit the 1120x940 settings design uniformly, leaving the taskbar/work-area clear.
 inline RECT centeredPanelRect(RECT work,UINT dpi){
     float scale=std::max(1u,dpi)/96.f;int margin=std::max(12,int(24*scale)),caption=int(32*scale);
-    float fit=std::min({scale,(work.right-work.left-2*margin)/984.f,(work.bottom-work.top-2*margin-caption)/1050.f});
-    fit=std::max(.1f,fit);int width=int(984*fit),height=int(1050*fit)+caption;
+    float fit=std::min({scale,(work.right-work.left-2*margin)/1120.f,(work.bottom-work.top-2*margin-caption)/940.f});
+    fit=std::max(.1f,fit);int width=int(1120*fit),height=int(940*fit)+caption;
     int x=work.left+(work.right-work.left-width)/2,y=work.top+(work.bottom-work.top-height)/2;
     return {x,y,x+width,y+height};
 }

@@ -30,12 +30,13 @@ MotionCompensator 是一款旨在缓解游戏中 3D 眩晕与晕动不适的 Win
 三种方案分别保存点阵外观设置。动态方案不会自动切换为静态；可通过方案按钮或快捷键自行切换。
 
 外观和运动设置
+右侧“点阵”和“准星”分别调整两类外观。点阵页按“点阵方案”“外观”和“运动”分组，内容超出右侧区域时可滚轮滚动或拖动滚动条，顶部页面导航与左侧预览保持固定；静态方案不显示运动分组。底部保留日志开关与调试显示按钮。
 “点大小”“透明度”“点间距”与颜色按钮用于调整点阵外观。透明度0%为完全可见，100%为完全透明。屏边点大小范围为1–64，其他方案为1–24。
 “中央留空”调整画面中央圆形留空范围；屏边方案中对应控件为“边缘带宽”，用于调整点阵所在的屏边区域。
 “点阵交错”使相邻行错开排列；“边界淡化”柔化分区点阵交界处的出现和消失。
 动态方案的“运动强度”调整滚动速度，“反转运动方向”切换滚动方向。这些设置可分别保存。
 “背景适配”可选择固定颜色、同色相明暗、同色相双层描边或两者组合。明暗适配根据点附近的背景柔和调整亮度，双层描边采用外暗内亮的同色相轮廓。
-右侧预览显示排布、颜色和准星，并提供明暗背景对照。动态滚动效果请在游戏中查看。
+左侧预览显示排布、颜色和准星，并提供明暗背景对照。动态滚动效果请在游戏中查看。
 
 中央准星
 点击横排图标选择关闭、十字、菱十字、圆点、圆环、留空十字、T形或菱形。蓝色按钮表示当前选择，悬停可查看名称与提示。
@@ -101,6 +102,7 @@ Getting started
 5. Use 中文 / English to switch language. The theme button cycles system, light and dark themes without changing overlay colors.
 
 Styles and settings
+Use the Dots and Reticle pages on the right to adjust their respective appearance. The Dots page groups style, appearance and motion settings. Scroll the right-hand area with the wheel or drag its scrollbar when content overflows; page navigation and the left preview stay fixed. Static dots hide the motion group. The left preview updates live. Logging and diagnostics are available at the bottom.
 Regional dots: independently scrolling regions driven by observed motion and input prediction, with a clear center and optional boundary fading.
 Screen-edge dots: larger dots along the left/right, top/bottom or all edges, using scrolling, fading and alternating sizes to present motion.
 Static dots: a fixed 4x4 reference with sixteen dots, soft halos on the outer columns and small dots in the inner columns. Pattern spread changes the layout's extent without changing the count.

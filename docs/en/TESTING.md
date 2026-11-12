@@ -28,3 +28,5 @@ Use short runs along the same route. Record distraction, occlusion, dot continui
 Reports should include app/Windows/game versions, resolution/scaling, monitor setup, window mode, input device, style/settings and reproduction steps. Logs are optional and should be reviewed for private data first.
 
 Capture/analysis/submission FPS is not game FPS. CPU submission time is not GPU completion or display latency. Unavailable metrics must not be guessed or filled with zero.
+
+Slider and scrolling regression: drag rapidly in both directions, release outside the track, then fine-tune with arrow keys. Check thumb, label and final preview agreement. Verify values after profile switches and restart. The wheel should scroll the settings content instead of changing slider values; page navigation and preview should stay fixed.

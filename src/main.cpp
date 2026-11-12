@@ -34,7 +34,7 @@ static WindowEntry describe(HWND hwnd) {
         CloseHandle(process); }
     std::transform(w.exe.begin(),w.exe.end(),w.exe.begin(),[](wchar_t c){return std::towlower(c);}); return w;
 }
-enum { List=101, Refresh, Attach, Auto, Mode, Visible, Stop, Radius, Opacity, Spacing, Language, DotColor, ReticleColor, ReticleOpacity, ReticleSize, ReticleShape, Hole, Staggered, BoundaryFade, TabRegional, TabEdge, TabStatic, Gain, Invert, Edges, DebugParameters, Instructions, Appearance, CaptionMinimize, CaptionClose, Theme, RecordLog, ReticleFirst=200 };
+enum { List=101, Refresh, Attach, Auto, Mode, Visible, Stop, Radius, Opacity, Spacing, Language, DotColor, ReticleColor, ReticleOpacity, ReticleSize, ReticleShape, Hole, Staggered, BoundaryFade, TabRegional, TabEdge, TabStatic, Gain, Invert, Edges, DebugParameters, Instructions, Appearance, CaptionMinimize, CaptionClose, Theme, RecordLog, PageDots, PageReticle, MoreSettings, ReticleFirst=200 };
 class App {
 public:
     HWND hwnd{},list{},status{},autoBox{},visibleBox{},radius{},opacity{},spacing{};
@@ -60,7 +60,7 @@ public:
     std::string captureDetails;
     std::array<bool,3> hotkeys{};
     double nextHotkeyRetry=0;
-    std::wstring healthMessage;
+    std::wstring healthMessage,statusDetails;
     std::wstring error;
     bool chinese=true,flowDebug=false,showDebug=false;
     double lastDebug=0,fusionMs=0;
@@ -68,13 +68,15 @@ public:
     HWND debugButton{};
     mc::Preferences preferences;
     std::filesystem::path settingsPath;
-    bool settingsDirty=false,controlsReady=false;
+    bool settingsDirty=false,controlsReady=false,sliderPreviewPending=false;double nextSliderPreview=0;
+    std::vector<std::pair<HWND,HWND>> sliderLabels;
     double saveAfter=0;
     std::string settingsError;
     HWND appearanceBox{},captionMinimize{},captionClose{};
     float uiScale=1;int uiOffsetX=0,uiOffsetY=0;
     bool liveSizing=false;int layoutWidth=0,layoutHeight=0,layoutDpi=0,fontScalePixels=0;
-    struct ControlRect{HWND window;int x,y,w,h;};
+    int settingsPage=0;HWND settingsPane{};std::array<int,2> paneScroll{};int scrollWheel=0;bool scrollDragging=false;int scrollDragY=0,scrollDragStart=0;
+    struct ControlRect{HWND window;int x,y,w,h,group;};
     std::vector<ControlRect> controlRects;
     HWND boundaryBox{},gain{},gainLabel{},invertBox{},edgesBox{};
     std::array<HWND,3> tabs{};
@@ -95,6 +97,7 @@ public:
             {L"Ctrl+Alt+F8: next style    Ctrl+Alt+F9: show/hide\nCtrl+Alt+F10: stop",L"Ctrl+Alt+F8：切换方案    Ctrl+Alt+F9：显示/隐藏\nCtrl+Alt+F10：停止采集"}};
         static const std::vector<std::pair<std::wstring,std::wstring>> extra={
             {L"Theme",L"主题"},{L"Log",L"日志"},
+            {L"Dots",L"点阵"},{L"Reticle",L"准星"},{L"Dot style",L"点阵方案"},{L"Appearance settings",L"外观"},{L"Motion settings",L"运动"},
             {L"Visual comfort, in your control.",L"让视野更舒适，让设置更直观。"},
             {L"Game connection",L"游戏连接"},{L"Center reticle",L"中央准星"},
             {L"Regional dots",L"分区点阵"},{L"Screen-edge dots",L"屏边点阵"},{L"Static dots",L"静态点阵"},
@@ -138,7 +141,7 @@ public:
         int n=GetWindowTextLengthW(control);std::wstring old(n+1,L'\0');GetWindowTextW(control,old.data(),n+1);old.resize(n);
         if(old!=value)SetWindowTextW(control,value.c_str());
     }
-    void invalidatePreview(){RECT r{uiOffsetX+int(600*uiScale),uiOffsetY+int(100*uiScale),uiOffsetX+int(964*uiScale),uiOffsetY+int(986*uiScale)};InvalidateRect(hwnd,&r,FALSE);}
+    void invalidatePreview(){RECT r{uiOffsetX+int(24*uiScale),uiOffsetY+int(252*uiScale),uiOffsetX+int(568*uiScale),uiOffsetY+int(852*uiScale)};InvalidateRect(hwnd,&r,FALSE);}
     void refreshValueLabels() {
         if(!radius || !reticleSize) return;
         auto v=visualSettings();int transparencyLabel=0;
@@ -151,7 +154,7 @@ public:
                 text=preferences.selected==1?(chinese?L"边缘带宽":L"Edge width"):(chinese?L"中央留空":L"Clear center");
                 value=preferences.selected==1?std::to_wstring(int(v.edgeWidth))+L" px":std::to_wstring(int(std::round(v.holeDiameter*100)))+L"%";
             }
-            if(label.second==L"Motion strength") {if(!chinese)text=L"Strength";value=std::to_wstring(int(SendMessageW(gain,TBM_GETPOS,0,0)))+L"%";}
+            if(label.second==L"Motion strength") {if(!chinese)text=L"Motion strength";value=std::to_wstring(int(SendMessageW(gain,TBM_GETPOS,0,0)))+L"%";}
             if(label.second==L"Transparency") value=std::to_wstring(int(std::round((1-(transparencyLabel++==0?v.opacity:v.reticleOpacity))*100)))+L"%";
             if(!value.empty()) setText(label.first,text+L"  "+value);
         }
@@ -175,6 +178,23 @@ public:
         mc::sanitize(preferences);
     }
     void markSettings() {collectSettings();settingsDirty=true;saveAfter=qpcSeconds()+.5;invalidatePreview();updateTips();}
+    void sliderChanged(HWND control,int code){
+        int id=GetDlgCtrlID(control),value=int(SendMessageW(control,TBM_GETPOS,0,0));
+        auto& profile=preferences.profiles[preferences.selected];std::wstring text;
+        switch(id){
+        case Radius:profile.radius=float(value);text=std::wstring(tr(L"Dot radius"))+L"  "+std::to_wstring(value)+L" px";break;
+        case Opacity:profile.opacity=1-value/100.f;text=std::wstring(tr(L"Transparency"))+L"  "+std::to_wstring(value)+L"%";break;
+        case Spacing:profile.spacing=float(value);text=preferences.selected==2?(chinese?L"排布展开  ":L"Pattern spread  ")+std::to_wstring(int(std::round((value-60)/180.f*100)))+L"%":std::wstring(tr(L"Dot spacing"))+L"  "+std::to_wstring(value)+L" px";break;
+        case Hole:if(preferences.selected==1){profile.edgeWidth=float(value);text=(chinese?L"边缘带宽  ":L"Edge width  ")+std::to_wstring(value)+L" px";}else{profile.hole=value/100.f;text=(chinese?L"中央留空  ":L"Clear center  ")+std::to_wstring(value)+L"%";}break;
+        case Gain:profile.gain=value/100.f;text=std::wstring(tr(L"Motion strength"))+L"  "+std::to_wstring(value)+L"%";break;
+        case ReticleOpacity:preferences.reticleOpacity=1-value/100.f;text=std::wstring(tr(L"Transparency"))+L"  "+std::to_wstring(value)+L"%";break;
+        case ReticleSize:preferences.reticleSize=float(value);text=std::wstring(tr(L"Reticle size"))+L"  "+std::to_wstring(value)+L" px";break;
+        default:return;
+        }
+        for(auto item:sliderLabels)if(item.first==control){setText(item.second,text);break;}
+        settingsDirty=true;saveAfter=qpcSeconds()+.5;sliderPreviewPending=true;
+        if(code==TB_ENDTRACK||code==TB_THUMBPOSITION){sliderPreviewPending=false;invalidatePreview();updateTips();}
+    }
     void flushSettings() {
         if(!settingsDirty || smoke)return;
         collectSettings();
@@ -197,10 +217,61 @@ public:
         SendMessageW(invertBox,BM_SETCHECK,p.inverted?BST_CHECKED:BST_UNCHECKED,0);
         populateEdges(p.edges);populateAppearance(p.appearance);
         dynamic=preferences.selected!=2;
-        ShowWindow(staggerBox,SW_SHOW);ShowWindow(boundaryBox,preferences.selected==0?SW_SHOW:SW_HIDE);
-        ShowWindow(edgesBox,preferences.selected==1?SW_SHOW:SW_HIDE);
-        for(HWND c:{gain,gainLabel,invertBox}) ShowWindow(c,dynamic?SW_SHOW:SW_HIDE);
+        updatePageVisibility();
         refreshValueLabels();if(controlsReady)updateTips();for(auto tab:tabs) InvalidateRect(tab,nullptr,FALSE);
+    }
+    void updatePageVisibility(){
+        for(const auto& item:controlRects){
+            bool show=item.group==0||(settingsPage==0&&(item.group==1||item.group==3))||(settingsPage==1&&item.group==2);
+            if(item.window==boundaryBox)show=show&&preferences.selected==0;
+            if(item.window==edgesBox)show=show&&preferences.selected==1;
+            if(item.group==3)show=show&&dynamic;
+            if(bool(GetWindowLongPtrW(item.window,GWL_STYLE)&WS_VISIBLE)!=show)SetWindowPos(item.window,nullptr,0,0,0,0,SWP_NOMOVE|SWP_NOSIZE|SWP_NOZORDER|SWP_NOACTIVATE|SWP_NOREDRAW|(show?SWP_SHOWWINDOW:SWP_HIDEWINDOW));
+        }
+        layoutSettings();
+        if(controlsReady)RedrawWindow(hwnd,nullptr,nullptr,RDW_INVALIDATE|RDW_ALLCHILDREN);
+    }
+    int settingsContentHeight() const {return settingsPage==1?348:dynamic?728:520;}
+    int settingsScrollLimit() const {RECT r{};if(!settingsPane||uiScale<=0)return 0;GetClientRect(settingsPane,&r);return std::max(0,settingsContentHeight()-int(r.bottom/uiScale));}
+    void layoutSettings(){
+        if(!settingsPane)return;
+        auto& offset=paneScroll[settingsPage];offset=std::clamp(offset,0,settingsScrollLimit());
+        UiLayoutBatch batch(settingsPane,int(controlRects.size()));
+        for(const auto& c:controlRects)if(c.group>0)batch.place(c.window,int((c.x-600)*uiScale),int((c.y-312-offset)*uiScale),int(c.w*uiScale),int(c.h*uiScale));
+        batch.commit();RedrawWindow(settingsPane,nullptr,nullptr,RDW_INVALIDATE|RDW_ALLCHILDREN);
+    }
+    void scrollSettings(int value){int next=std::clamp(value,0,settingsScrollLimit());if(next!=paneScroll[settingsPage]){paneScroll[settingsPage]=next;layoutSettings();}}
+    void revealSetting(HWND control){
+        RECT r{};GetClientRect(settingsPane,&r);int page=int(r.bottom/std::max(.1f,uiScale));
+        for(const auto& c:controlRects)if(c.window==control&&c.group>0){int y=c.y-312,offset=paneScroll[settingsPage];if(y<offset)scrollSettings(y-8);else if(y+std::min(c.h,36)>offset+page)scrollSettings(y+std::min(c.h,36)-page+8);break;}
+    }
+    RECT settingsThumb() const {
+        RECT r{};GetClientRect(settingsPane,&r);int limit=settingsScrollLimit();if(!limit)return {};
+        int page=std::max(1L,r.bottom),track=std::max(1,page-16),height=std::max(24,int(float(track)*page/(page+limit*uiScale)));
+        int y=8+int(float(track-height)*paneScroll[settingsPage]/limit);return {r.right-8,y,r.right-4,y+height};
+    }
+    static LRESULT CALLBACK settingControlProc(HWND w,UINT m,WPARAM a,LPARAM b,UINT_PTR id,DWORD_PTR ref){
+        auto app=reinterpret_cast<App*>(ref);
+        if(m==WM_MOUSEWHEEL){if(GetDlgCtrlID(w)==Appearance||GetDlgCtrlID(w)==Edges){if(SendMessageW(w,CB_GETDROPPEDSTATE,0,0))return DefSubclassProc(w,m,a,b);}return SendMessageW(app->settingsPane,m,a,b);}
+        if(m==WM_SETFOCUS)app->revealSetting(w);
+        if(m==WM_NCDESTROY)RemoveWindowSubclass(w,settingControlProc,id);
+        return DefSubclassProc(w,m,a,b);
+    }
+    static LRESULT CALLBACK settingsPaneProc(HWND w,UINT m,WPARAM a,LPARAM b,UINT_PTR id,DWORD_PTR ref){
+        auto app=reinterpret_cast<App*>(ref);
+        if(m==WM_ERASEBKGND)return 1;
+        if(m==WM_PAINT){PAINTSTRUCT ps{};HDC dc=BeginPaint(w,&ps);RECT r{};GetClientRect(w,&r);UiPaintBuffer frame(dc,r);FillRect(frame.dc(),&r,mc::ui::surfaceBrush());
+            if(app->settingsPage==0){Gdiplus::Graphics g(frame.dc());g.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);float scale=app->uiScale;mc::fluent::rounded(g,4*scale,(44-app->paneScroll[0])*scale,464*scale,48*scale,6*scale,mc::ui::palette.hover,mc::ui::palette.line);}
+            auto thumb=app->settingsThumb();if(thumb.bottom>thumb.top){Gdiplus::Graphics g(frame.dc());g.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);mc::fluent::rounded(g,float(thumb.left),float(thumb.top),float(thumb.right-thumb.left),float(thumb.bottom-thumb.top),2,mc::ui::palette.muted);}
+            frame.present();EndPaint(w,&ps);return 0;}
+        if(m==WM_CTLCOLORSTATIC||m==WM_CTLCOLORBTN){HDC dc=reinterpret_cast<HDC>(a);SetTextColor(dc,mc::fluent::ink);SetBkMode(dc,TRANSPARENT);return reinterpret_cast<LRESULT>(mc::ui::surfaceBrush());}
+        if(m==WM_MOUSEWHEEL){app->scrollWheel+=GET_WHEEL_DELTA_WPARAM(a);int steps=app->scrollWheel/WHEEL_DELTA;app->scrollWheel%=WHEEL_DELTA;if(steps)app->scrollSettings(app->paneScroll[app->settingsPage]-steps*48);return 0;}
+        if(m==WM_LBUTTONDOWN){RECT r{};GetClientRect(w,&r);int x=GET_X_LPARAM(b),y=GET_Y_LPARAM(b);if(app->settingsScrollLimit()>0&&x>=r.right-16){auto thumb=app->settingsThumb();if(y>=thumb.top&&y<thumb.bottom){app->scrollDragging=true;app->scrollDragY=y;app->scrollDragStart=app->paneScroll[app->settingsPage];SetCapture(w);}else app->scrollSettings(app->paneScroll[app->settingsPage]+(y<thumb.top?-1:1)*int(r.bottom/std::max(.1f,app->uiScale)));return 0;}}
+        if(m==WM_MOUSEMOVE&&app->scrollDragging){RECT r{};GetClientRect(w,&r);auto thumb=app->settingsThumb();int travel=std::max(1L,r.bottom-16-(thumb.bottom-thumb.top));app->scrollSettings(app->scrollDragStart+(GET_Y_LPARAM(b)-app->scrollDragY)*app->settingsScrollLimit()/travel);return 0;}
+        if(m==WM_LBUTTONUP||m==WM_CANCELMODE||m==WM_CAPTURECHANGED){app->scrollDragging=false;if(GetCapture()==w)ReleaseCapture();}
+        if(m==WM_COMMAND||m==WM_HSCROLL||m==WM_MEASUREITEM||m==WM_DRAWITEM||m==WM_CTLCOLORLISTBOX)return SendMessageW(app->hwnd,m,a,b);
+        if(m==WM_NCDESTROY)RemoveWindowSubclass(w,settingsPaneProc,id);
+        return DefSubclassProc(w,m,a,b);
     }
     void selectStyle(int style) {
         collectSettings();preferences.selected=std::clamp(style,0,2);loadProfileControls();
@@ -224,52 +295,53 @@ public:
         RECT client{};GetClientRect(hwnd,&client);int dpi=int(GetDpiForWindow(hwnd));
         if(client.right<=0||client.bottom<=0||(layoutWidth==client.right&&layoutHeight==client.bottom&&layoutDpi==dpi))return;
         layoutWidth=client.right;layoutHeight=client.bottom;layoutDpi=dpi;
-        int caption=mc::captionHeight(hwnd);uiScale=std::min(client.right/984.f,std::max(1L,client.bottom-caption)/1050.f);
-        uiOffsetX=int((client.right-984*uiScale)*.5f);uiOffsetY=caption+int((client.bottom-caption-1050*uiScale)*.5f);
+        int caption=mc::captionHeight(hwnd);uiScale=std::min(client.right/1120.f,std::max(1L,client.bottom-caption)/940.f);
+        uiOffsetX=int((client.right-1120*uiScale)*.5f);uiOffsetY=caption+int((client.bottom-caption-940*uiScale)*.5f);
         UiLayoutBatch batch(hwnd,int(controlRects.size())+2);
         int captionWidth=mc::captionButtonWidth(hwnd);
         if(captionMinimize)batch.place(captionMinimize,client.right-2*captionWidth,0,captionWidth,caption);
         if(captionClose)batch.place(captionClose,client.right-captionWidth,0,captionWidth,caption);
-        for(auto c:controlRects)batch.place(c.window,uiOffsetX+int(c.x*uiScale),uiOffsetY+int(c.y*uiScale),int(c.w*uiScale),int(c.h*uiScale));
-        int scalePixels=std::max(1,int(18*uiScale))*10000+std::max(1,int(14*uiScale))*100+std::max(1,int(30*uiScale));
+        for(auto c:controlRects)if(c.group==0)batch.place(c.window,uiOffsetX+int(c.x*uiScale),uiOffsetY+int(c.y*uiScale),int(c.w*uiScale),int(c.h*uiScale));
+        batch.place(settingsPane,uiOffsetX+int(600*uiScale),uiOffsetY+int(312*uiScale),int(488*uiScale),int(524*uiScale));
+        int scalePixels=std::max(1,int(14*uiScale))*10000+std::max(1,int(12*uiScale))*100+std::max(1,int(28*uiScale));
         if(fontScalePixels!=scalePixels){
             fontScalePixels=scalePixels;HFONT oldFont=font,oldSmall=smallFont,oldTitle=titleFont;
             auto make=[&](int size,int weight){return CreateFontW(-std::max(1,int(size*uiScale)),0,0,0,weight,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI Variable Text");};
-            font=make(18,FW_NORMAL);smallFont=make(14,FW_NORMAL);titleFont=make(30,FW_SEMIBOLD);
-            for(auto c:controlRects)SendMessageW(c.window,WM_SETFONT,reinterpret_cast<WPARAM>(c.y==20?titleFont:c.window==shortcutsLabel?smallFont:font),FALSE);
+            font=make(14,FW_NORMAL);smallFont=make(12,FW_NORMAL);titleFont=make(28,FW_SEMIBOLD);
+            for(auto c:controlRects)SendMessageW(c.window,WM_SETFONT,reinterpret_cast<WPARAM>(c.y==24?titleFont:c.window==shortcutsLabel||(c.window==status&&showDebug)?smallFont:font),FALSE);
             DeleteObject(oldFont);DeleteObject(oldSmall);DeleteObject(oldTitle);
         }
-        batch.commit();
-        for(HWND combo:{list,edgesBox,appearanceBox})mc::fluent::comboHeight(combo,int(30*uiScale));
+        batch.commit();layoutSettings();
+        for(HWND combo:{list,edgesBox,appearanceBox})mc::fluent::comboHeight(combo,int(32*uiScale));
         RedrawWindow(hwnd,nullptr,nullptr,RDW_INVALIDATE|RDW_ALLCHILDREN);
     }
     void paint() {
         PAINTSTRUCT paint{};HDC screen=BeginPaint(hwnd,&paint);RECT client{};GetClientRect(hwnd,&client);UiPaintBuffer buffer(screen,client);HDC dc=buffer.dc();FillRect(dc,&client,background);
         HFONT captionFont=CreateFontW(-MulDiv(13,int(GetDpiForWindow(hwnd)),96),0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
-        RECT captionRect{MulDiv(12,int(GetDpiForWindow(hwnd)),96),0,client.right-2*mc::captionButtonWidth(hwnd),mc::captionHeight(hwnd)};mc::fluent::text(dc,captionRect,L"MotionCompensator",captionFont,mc::fluent::ink);DeleteObject(captionFont);
-        SetMapMode(dc,MM_ANISOTROPIC);SetWindowExtEx(dc,984,1050,nullptr);SetViewportExtEx(dc,int(984*uiScale),int(1050*uiScale),nullptr);SetViewportOrgEx(dc,uiOffsetX,uiOffsetY,nullptr);
+        RECT captionRect{MulDiv(12,int(GetDpiForWindow(hwnd)),96),0,client.right-2*mc::captionButtonWidth(hwnd),mc::captionHeight(hwnd)};mc::fluent::text(dc,captionRect,mc::DisplayName,captionFont,mc::fluent::ink);DeleteObject(captionFont);
+        SetMapMode(dc,MM_ANISOTROPIC);SetWindowExtEx(dc,1120,940,nullptr);SetViewportExtEx(dc,int(1120*uiScale),int(940*uiScale),nullptr);SetViewportOrgEx(dc,uiOffsetX,uiOffsetY,nullptr);
         HPEN border=CreatePen(PS_SOLID,1,mc::ui::palette.line);auto savedPen=SelectObject(dc,border);SelectObject(dc,card);
-        for(RECT r:std::array{RECT{24,100,580,292},RECT{24,310,580,726},RECT{24,744,580,986},RECT{600,100,964,986}})
+        for(RECT r:std::array{RECT{24,100,1096,228},RECT{24,252,568,852},RECT{592,252,1096,852}})
             RoundRect(dc,r.left,r.top,r.right,r.bottom,20,20);
         SelectObject(dc,savedPen);DeleteObject(border);
         // A settings preview, not a simulated game. Uses the same mask as the overlay.
-        RECT preview{620,158,944,430};HBRUSH dark=CreateSolidBrush(RGB(20,29,44));FillRect(dc,&preview,dark);DeleteObject(dark);
+        RECT preview{40,292,552,612};HBRUSH dark=CreateSolidBrush(RGB(20,29,44));FillRect(dc,&preview,dark);DeleteObject(dark);
         auto v=visualSettings();
         MONITORINFO monitor{};monitor.cbSize=sizeof(monitor);
         GetMonitorInfoW(MonitorFromWindow(hwnd,MONITOR_DEFAULTTONEAREST),&monitor);
         int sourceW=std::max(1L,monitor.rcMonitor.right-monitor.rcMonitor.left),sourceH=std::max(1L,monitor.rcMonitor.bottom-monitor.rcMonitor.top);RECT targetSize{};
         if(selected.handle && GetClientRect(selected.handle,&targetSize) && targetSize.right>0 && targetSize.bottom>0){sourceW=targetSize.right;sourceH=targetSize.bottom;}
-        auto scene=mc::buildPreview(v,324,272,sourceW,sourceH);
-        for(int x=int(std::ceil(scene.contentLeft));x<int(scene.contentRight);++x){int shade=24+int(196.f*(x-scene.contentLeft)/std::max(1.f,scene.contentRight-scene.contentLeft));HBRUSH bg=CreateSolidBrush(RGB(shade,shade,shade));RECT strip{620+x,158+int(std::ceil(scene.contentTop)),621+x,158+int(std::floor(scene.contentBottom))};FillRect(dc,&strip,bg);DeleteObject(bg);}
-        paintPreview(dc,{620,158},scene);
-        SetBkMode(dc,TRANSPARENT);SetTextColor(dc,mc::fluent::muted);HFONT paintFont=CreateFontW(-18,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");auto savedFont=SelectObject(dc,paintFont);
+        auto scene=mc::buildPreview(v,512,320,sourceW,sourceH);
+        static const auto ramp=[](){std::array<uint32_t,512> pixels{};for(int i=0;i<512;++i){uint32_t shade=24+196*i/511;pixels[i]=shade|(shade<<8)|(shade<<16);}return pixels;}();
+        BITMAPINFO rampInfo{};rampInfo.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);rampInfo.bmiHeader.biWidth=512;rampInfo.bmiHeader.biHeight=-1;rampInfo.bmiHeader.biPlanes=1;rampInfo.bmiHeader.biBitCount=32;rampInfo.bmiHeader.biCompression=BI_RGB;
+        int previewLeft=int(std::ceil(scene.contentLeft)),previewTop=int(std::ceil(scene.contentTop)),previewRight=int(std::floor(scene.contentRight)),previewBottom=int(std::floor(scene.contentBottom));
+        StretchDIBits(dc,40+previewLeft,292+previewTop,previewRight-previewLeft,previewBottom-previewTop,0,0,512,1,ramp.data(),&rampInfo,DIB_RGB_COLORS,SRCCOPY);
+        paintPreview(dc,{40,292},scene);
+        SetBkMode(dc,TRANSPARENT);SetTextColor(dc,mc::fluent::muted);HFONT paintFont=CreateFontW(-14,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");auto savedFont=SelectObject(dc,paintFont);
         auto text=[&](int x,int y,std::wstring value){TextOutW(dc,x,y,value.c_str(),int(value.size()));};
-        text(620,454,styleName(preferences.selected));
-        text(620,480,chinese?L"调整设置即时预览，切回游戏应用。":L"Live preview. Return to the game to apply.");
-        text(620,520,chinese?L"明暗背景对照预览":L"Light / dark background comparison");
-        if(!dynamic)text(620,548,chinese?L"4 × 4 · 外列柔边外圈":L"4 x 4 / soft halos on outer columns");
-        RECT swatch{620,670,640,686};HBRUSH b=CreateSolidBrush(rgb(v.dots));FillRect(dc,&swatch,b);DeleteObject(b);text(648,664,chinese?L"点阵":L"Dots");
-        swatch={770,670,790,686};b=CreateSolidBrush(rgb(v.reticle));FillRect(dc,&swatch,b);DeleteObject(b);text(798,664,chinese?L"准星":L"Reticle");
+        text(40,632,styleName(preferences.selected));
+        text(40,656,chinese?L"调整设置即时预览，切回游戏应用。":L"Live preview. Return to your game to apply.");
+        if(!dynamic)text(328,632,chinese?L"4 × 4 · 外列柔边":L"4 x 4 / outer halos");
         SelectObject(dc,savedFont);DeleteObject(paintFont);buffer.present();EndPaint(hwnd,&paint);
     }
 
@@ -325,6 +397,8 @@ public:
         case ReticleSize:return choose(L"准星大小是中心到端点的长度，完整跨度约为该值的两倍。",L"Size is the center-to-tip length; the full span is approximately twice this value.");
         case DebugParameters:return choose(L"仅控制游戏浮层中的调试可视化，与日志开关独立。",L"Toggle diagnostic visuals in the overlay. This does not enable logging.");
         case RecordLog:return choose(L"每次启动默认关闭。勾选才记录；取消后立即停止并保留已有文件。单文件约10MB、总量100MB、最多20份，超限清理最旧记录。",L"Off at every launch. Check to record; uncheck to stop and keep existing files. About 10 MB per file, 100 MB total, up to 20 files; oldest logs are removed.");
+        case PageDots:return choose(L"调整点阵方案与各方案独立保存的外观设置。",L"Choose a dot style and adjust its independent appearance settings.");
+        case PageReticle:return choose(L"调整所有点阵方案共用的中央准星。",L"Adjust the central reticle shared by all dot styles.");
         case Theme:return choose(L"点击切换：跟随系统 → 浅色 → 深色。\n当前：",L"Click to cycle: system → light → dark.\nCurrent: ")+(chinese?std::array{L"跟随系统",L"浅色",L"深色"}:std::array{L"Follow system",L"Light",L"Dark"})[preferences.theme];
         case Language:return choose(L"切换中文和英文界面，不改变视觉参数。",L"Switch between Chinese and English without changing visual parameters.");
         case Instructions:return choose(L"打开使用说明与第三方许可。",L"Open the user guide and third-party notices.");
@@ -349,6 +423,7 @@ public:
         tips.set(captionMinimize,hint(CaptionMinimize));tips.set(captionClose,hint(CaptionClose));
         auto statusTip=chinese?std::wstring(L"显示当前连接目标、画面观测和输入来源；此处fps不是游戏实际帧率。"):std::wstring(L"Active target, observation quality and input source. This rate is not the game's FPS.");
         if(!healthMessage.empty())statusTip+=L"\n"+healthMessage;
+        if(!statusDetails.empty())statusTip+=L"\n\n"+statusDetails;
         if(health.reason==mc::HealthReason::CaptureError)statusTip+=L"\n"+std::wstring(captureDetails.begin(),captureDetails.end());
         if(!settingsError.empty())statusTip+=(chinese?L"\n设置问题：":L"\nSettings problem: ")+std::wstring(settingsError.begin(),settingsError.end());
         if(!inputs.rawReady)statusTip+=chinese?L"\n键鼠注册失败；可靠画面观测仍可使用，请重新启动软件重试。":L"\nRaw input registration failed. Reliable image observations can still be used; restart the app to retry.";
@@ -400,70 +475,83 @@ public:
         chinese=preferences.chinese;visible=preferences.visible;automatic=preferences.automatic;dynamic=preferences.selected!=2;
         crossColor=preferences.reticleColor;
         smallFont=CreateFontW(-14,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
-        font=CreateFontW(-18,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
+        font=CreateFontW(-14,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
+        settingsPane=CreateWindowExW(WS_EX_CONTROLPARENT,L"STATIC",L"",WS_CHILD|WS_VISIBLE|WS_CLIPCHILDREN,0,0,1,1,hwnd,nullptr,instance,nullptr);
+        SetWindowSubclass(settingsPane,settingsPaneProc,77,reinterpret_cast<DWORD_PTR>(this));
+        int uiGroup=0;
         auto child=[&](const wchar_t* cls,const wchar_t* text,DWORD style,int x,int y,int w,int h,int id)->HWND {
             if(wcscmp(cls,L"BUTTON")==0 || wcscmp(cls,L"COMBOBOX")==0) style|=WS_TABSTOP;
             if(wcscmp(cls,L"COMBOBOX")==0)style|=CBS_OWNERDRAWFIXED|CBS_HASSTRINGS;
             if(wcscmp(cls,L"STATIC")==0)style|=SS_NOTIFY;
-            HWND c=CreateWindowExW(0,cls,text,WS_CHILD|WS_VISIBLE|style,x,y,w,h,hwnd,reinterpret_cast<HMENU>(static_cast<INT_PTR>(id)),instance,nullptr);
+            HWND c=CreateWindowExW(0,cls,text,WS_CHILD|WS_VISIBLE|style,x,y,w,h,uiGroup?settingsPane:hwnd,reinterpret_cast<HMENU>(static_cast<INT_PTR>(id)),instance,nullptr);
             if(wcscmp(cls,L"STATIC")==0)mc::fluent::install(c,mc::fluent::Kind::Label);
             else if(wcscmp(cls,L"COMBOBOX")==0)mc::fluent::install(c,mc::fluent::Kind::Combo);
             else if(wcscmp(cls,TRACKBAR_CLASSW)==0)mc::fluent::install(c,mc::fluent::Kind::Slider);
             else if(wcscmp(cls,L"BUTTON")==0)mc::fluent::install(c,(style&BS_TYPEMASK)==BS_AUTOCHECKBOX?mc::fluent::Kind::Check:mc::fluent::Kind::Button);
-            controlRects.push_back({c,x,y,w,h});
+            if(uiGroup)SetWindowSubclass(c,settingControlProc,78,reinterpret_cast<DWORD_PTR>(this));
+            controlRects.push_back({c,x,y,w,h,uiGroup});
             labels.push_back({c,text});SetWindowTextW(c,tr(labels.back().second));
             SendMessageW(c,WM_SETFONT,reinterpret_cast<WPARAM>(font),TRUE); return c;
         };
-        titleFont=CreateFontW(-30,0,0,0,FW_SEMIBOLD,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
-        auto title=child(L"STATIC",mc::DisplayName,0,28,20,530,38,0);SendMessageW(title,WM_SETFONT,reinterpret_cast<WPARAM>(titleFont),TRUE);
-        child(L"STATIC",L"Visual comfort, in your control.",0,30,64,300,25,0);
-        themeButton=child(L"BUTTON",L"",BS_OWNERDRAW,560,32,44,36,Theme);populateTheme();
-        child(L"BUTTON",L"User Guide",BS_OWNERDRAW,620,32,156,36,Instructions);
-        child(L"BUTTON",L"中文 / English",BS_OWNERDRAW,804,32,156,36,Language);
-        child(L"STATIC",L"Game connection",0,44,118,400,26,0);
-        list=child(L"COMBOBOX",L"",CBS_DROPDOWNLIST|WS_VSCROLL,44,154,516,320,List);
-        child(L"BUTTON",L"Refresh windows",BS_OWNERDRAW,44,195,158,34,Refresh);
-        child(L"BUTTON",L"Attach selected",BS_OWNERDRAW,214,195,174,34,Attach);
-        child(L"BUTTON",L"Stop capture",BS_OWNERDRAW,400,195,160,34,Stop);
-        autoBox=child(L"BUTTON",L"Auto attach foreground known game",BS_AUTOCHECKBOX,44,246,480,26,Auto);
-        tabs[0]=child(L"BUTTON",L"Regional dots",BS_OWNERDRAW,44,326,166,36,TabRegional);
-        tabs[1]=child(L"BUTTON",L"Screen-edge dots",BS_OWNERDRAW,216,326,166,36,TabEdge);
-        tabs[2]=child(L"BUTTON",L"Static dots",BS_OWNERDRAW,388,326,172,36,TabStatic);
-        visibleBox=child(L"BUTTON",L"Show overlay",BS_AUTOCHECKBOX,44,372,150,26,Visible);
-        staggerBox=child(L"BUTTON",L"Staggered dots",BS_AUTOCHECKBOX,208,372,162,26,Staggered);
-        boundaryBox=child(L"BUTTON",L"Boundary fade",BS_AUTOCHECKBOX,382,372,178,26,BoundaryFade);
-        edgesBox=child(L"COMBOBOX",L"",CBS_DROPDOWNLIST,382,372,178,150,Edges);
+        titleFont=CreateFontW(-28,0,0,0,FW_SEMIBOLD,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI Variable Text");
+        auto title=child(L"STATIC",L"MotionCompensator",0,28,24,648,38,0);SendMessageW(title,WM_SETFONT,reinterpret_cast<WPARAM>(titleFont),TRUE);
+        child(L"STATIC",L"Visual comfort, in your control.",0,30,64,560,24,0);
+        themeButton=child(L"BUTTON",L"",BS_OWNERDRAW,736,32,40,36,Theme);populateTheme();
+        child(L"BUTTON",L"User Guide",BS_OWNERDRAW,784,32,144,36,Instructions);
+        child(L"BUTTON",L"中文 / English",BS_OWNERDRAW,936,32,160,36,Language);
+        child(L"STATIC",L"Game connection",0,40,116,400,24,0);
+        autoBox=child(L"BUTTON",L"Auto attach foreground known game",BS_AUTOCHECKBOX,792,116,288,24,Auto);
+        list=child(L"COMBOBOX",L"",CBS_DROPDOWNLIST|WS_VSCROLL,40,156,600,280,List);
+        child(L"BUTTON",L"Refresh windows",BS_OWNERDRAW,656,156,128,36,Refresh);
+        child(L"BUTTON",L"Attach selected",BS_OWNERDRAW,792,156,144,36,Attach);
+        child(L"BUTTON",L"Stop capture",BS_OWNERDRAW,944,156,136,36,Stop);
+        child(L"STATIC",L"Appearance preview",0,40,264,320,24,0);
+        visibleBox=child(L"BUTTON",L"Show overlay",BS_AUTOCHECKBOX,392,264,160,24,Visible);
+        child(L"BUTTON",L"Dots",BS_OWNERDRAW,608,264,144,36,PageDots);
+        child(L"BUTTON",L"Reticle",BS_OWNERDRAW,760,264,144,36,PageReticle);
         SendMessageW(autoBox,BM_SETCHECK,automatic?BST_CHECKED:BST_UNCHECKED,0);
         SendMessageW(visibleBox,BM_SETCHECK,visible?BST_CHECKED:BST_UNCHECKED,0);
+        uiGroup=1;
+        child(L"STATIC",L"Dot style",0,608,324,456,24,0);
+        tabs[0]=child(L"BUTTON",L"Regional dots",BS_OWNERDRAW,608,360,148,40,TabRegional);
+        tabs[1]=child(L"BUTTON",L"Screen-edge dots",BS_OWNERDRAW,764,360,148,40,TabEdge);
+        tabs[2]=child(L"BUTTON",L"Static dots",BS_OWNERDRAW,920,360,144,40,TabStatic);
+        child(L"STATIC",L"Appearance settings",0,608,420,456,28,0);
+        staggerBox=child(L"BUTTON",L"Staggered dots",BS_AUTOCHECKBOX,608,460,160,24,Staggered);
+        edgesBox=child(L"COMBOBOX",L"",CBS_DROPDOWNLIST,792,456,272,180,Edges);
         auto slider=[&](const wchar_t* label,int y,int id,int low,int high,int initial) {
-            child(L"STATIC",label,0,44,y+4,180,26,0);
-            HWND control=child(TRACKBAR_CLASSW,L"",TBS_NOTICKS|WS_TABSTOP,232,y,328,30,id);
-            SendMessageW(control,TBM_SETRANGE,TRUE,MAKELPARAM(low,high));SendMessageW(control,TBM_SETPOS,TRUE,initial);return control;
+            HWND valueLabel=child(L"STATIC",label,0,608,y,192,32,0);
+            HWND control=child(TRACKBAR_CLASSW,L"",TBS_NOTICKS|WS_TABSTOP,808,y,256,32,id);
+            SendMessageW(control,TBM_SETRANGE,TRUE,MAKELPARAM(low,high));SendMessageW(control,TBM_SETPOS,TRUE,initial);sliderLabels.push_back({control,valueLabel});return control;
         };
-        radius=slider(L"Dot radius",406,Radius,1,24,3);
-        opacity=slider(L"Transparency",446,Opacity,0,100,0);
-        spacing=slider(L"Dot spacing",486,Spacing,60,240,122);
-        hole=slider(L"Clear center (%)",526,Hole,5,25,10);
-        child(L"BUTTON",L"Choose dot color",BS_OWNERDRAW,44,562,516,28,DotColor);
-        child(L"STATIC",L"Background",0,44,646,180,26,0);
-        appearanceBox=child(L"COMBOBOX",L"",CBS_DROPDOWNLIST,232,640,328,180,Appearance);
-        child(L"STATIC",L"Center reticle",0,44,762,400,26,0);
+        radius=slider(L"Dot radius",508,Radius,1,24,3);
+        opacity=slider(L"Transparency",564,Opacity,0,100,0);
+        spacing=slider(L"Dot spacing",620,Spacing,60,240,122);
+        child(L"BUTTON",L"Choose dot color",BS_OWNERDRAW,608,676,456,36,DotColor);
+        hole=slider(L"Clear center (%)",728,Hole,5,25,10);
+        child(L"STATIC",L"Background",0,608,780,192,32,0);
+        appearanceBox=child(L"COMBOBOX",L"",CBS_DROPDOWNLIST,808,780,256,180,Appearance);
+        uiGroup=3;
+        child(L"STATIC",L"Motion settings",0,608,848,456,28,0);
+        gainLabel=child(L"STATIC",L"Motion strength",0,608,892,192,32,0);
+        gain=child(TRACKBAR_CLASSW,L"",TBS_NOTICKS|WS_TABSTOP,808,892,256,32,Gain);SendMessageW(gain,TBM_SETRANGE,TRUE,MAKELPARAM(25,200));sliderLabels.push_back({gain,gainLabel});
+        invertBox=child(L"BUTTON",L"Reverse direction",BS_AUTOCHECKBOX,608,944,456,24,Invert);
+        boundaryBox=child(L"BUTTON",L"Boundary fade",BS_AUTOCHECKBOX,608,988,456,24,BoundaryFade);
+        uiGroup=2;
+        child(L"STATIC",L"Center reticle",0,608,328,400,28,0);
         for(int i=0;i<mc::ReticleShapeCount;++i)
-            reticleButtons[i]=child(L"BUTTON",L"",BS_OWNERDRAW,44+i*65,794,61,44,ReticleFirst+i);
+            reticleButtons[i]=child(L"BUTTON",L"",BS_OWNERDRAW,608+i*58,380,52,52,ReticleFirst+i);
         populateShapes(preferences.reticleShape);
-        reticleOpacity=slider(L"Transparency",844,ReticleOpacity,0,100,0);
-        reticleSize=slider(L"Reticle size",886,ReticleSize,mc::ReticleSizeMin,mc::ReticleSizeMax,10);
-        child(L"BUTTON",L"Choose reticle color",BS_OWNERDRAW,44,936,516,32,ReticleColor);
-        child(L"STATIC",L"Appearance preview",0,620,120,324,28,0);
-        gainLabel=child(L"STATIC",L"Motion strength",0,44,604,180,26,0);
-        gain=child(TRACKBAR_CLASSW,L"",TBS_NOTICKS|WS_TABSTOP,232,598,328,30,Gain);SendMessageW(gain,TBM_SETRANGE,TRUE,MAKELPARAM(25,200));
-        invertBox=child(L"BUTTON",L"Reverse direction",BS_AUTOCHECKBOX,44,684,516,26,Invert);
-        child(L"STATIC",L"Connection & activity",0,620,744,324,26,0);
-        status=child(L"STATIC",L"Waiting for a game. Select a window or launch PAYDAY 2.",0,620,782,324,184,0);
-        shortcutsLabel=child(L"STATIC",L"Ctrl+Alt+F8: next style    Ctrl+Alt+F9: show/hide\nCtrl+Alt+F10: stop",0,30,1000,500,46,0);
+        reticleOpacity=slider(L"Transparency",488,ReticleOpacity,0,100,0);
+        reticleSize=slider(L"Reticle size",544,ReticleSize,mc::ReticleSizeMin,mc::ReticleSizeMax,10);
+        child(L"BUTTON",L"Choose reticle color",BS_OWNERDRAW,608,600,456,36,ReticleColor);
+        uiGroup=0;
+        child(L"STATIC",L"Connection & activity",0,40,696,512,24,0);
+        status=child(L"STATIC",L"Waiting for a game. Select a window or launch PAYDAY 2.",0,40,728,512,112,0);
+        shortcutsLabel=child(L"STATIC",L"Ctrl+Alt+F8: next style    Ctrl+Alt+F9: show/hide\nCtrl+Alt+F10: stop",0,30,880,652,44,0);
         SendMessageW(shortcutsLabel,WM_SETFONT,reinterpret_cast<WPARAM>(smallFont),TRUE);
-        logBox=child(L"BUTTON",L"Log",BS_AUTOCHECKBOX,620,1005,90,28,RecordLog);
-        debugButton=child(L"BUTTON",L"Show debug parameters",BS_OWNERDRAW,730,1002,230,32,DebugParameters);
+        logBox=child(L"BUTTON",L"Log",BS_AUTOCHECKBOX,784,884,72,28,RecordLog);
+        debugButton=child(L"BUTTON",L"Show debug parameters",BS_OWNERDRAW,872,880,224,36,DebugParameters);
         registerKeys();
         inputs.initialize(hwnd);
         if(!inputs.rawReady) error+=L" Raw Input unavailable.";
@@ -489,6 +577,7 @@ public:
     void tick() {
         if(smoke)setText(status,L"Software capture check "+std::to_wstring(int(qpcSeconds()*60)));
         double tickTime=qpcSeconds();float dt=float(tickTime-lastTick);lastTick=tickTime;
+        if(sliderPreviewPending&&tickTime>=nextSliderPreview){sliderPreviewPending=false;nextSliderPreview=tickTime+1./30;invalidatePreview();}
         if(settingsDirty && tickTime>=saveAfter) flushSettings();
         if(keysMissing()&&tickTime>=nextHotkeyRetry){registerKeys();updateTips();InvalidateRect(shortcutsLabel,nullptr,FALSE);}
         if(SendMessageW(logBox,BM_GETCHECK,0,0)==BST_CHECKED&&!log.enabled()){SendMessageW(logBox,BM_SETCHECK,BST_UNCHECKED,0);updateTips();}
@@ -657,7 +746,17 @@ public:
                 <<(input.pad?(chinese?L" | 手柄已连接":L" | pad connected"):(inputs.padApiAvailable()?(chinese?L" | 无 XInput 手柄":L" | no XInput pad"):(chinese?L" | XInput 不可用":L" | XInput unavailable")));
             if(!settingsError.empty())text<<L"\n"<<(chinese?L"设置保存/读取失败":L"Settings could not be loaded/saved");
             if(health.severity!=mc::Severity::Normal||health.reason==mc::HealthReason::NoTarget)text<<L"\n"<<healthMessage;
-            setText(status,text.str()); previousFrames=s.frames; lastLog=now;
+            statusDetails=text.str();
+            std::wostringstream summary;
+            summary<<(chinese?L"目标：":L"Target: ")<<(selected.handle?selected.exe:(chinese?L"未连接":L"Not connected"))<<L"\n"<<styleName(preferences.selected);
+            if(selected.handle)summary<<L" · "<<(inputForeground?(chinese?L"游戏在前台":L"Game in foreground"):(chinese?L"游戏不在前台":L"Game not foreground"));
+            summary<<L"\n";
+            if(!healthMessage.empty())summary<<healthMessage;
+            else summary<<(chinese?L"设置已实时应用。":L"Settings are applied live.");
+            if(!settingsError.empty())summary<<L"\n"<<(chinese?L"设置保存/读取失败；悬停查看详情。":L"Settings could not be loaded/saved; hover for details.");
+            setText(status,showDebug?statusDetails:summary.str());
+            tips.set(status,statusDetails);
+            previousFrames=s.frames; lastLog=now;
         }
         if(smoke && now-started>6) {
             auto s=capture.snapshot(); failed=s.frames==0 || draws==0 || !s.running || (dynamic?s.analyses==0:(s.analyses!=0||s.brightnessUpdates==0));
@@ -666,13 +765,15 @@ public:
         }
     }
     void command(int id) {
+        if(id==PageDots||id==PageReticle){settingsPage=id==PageReticle?1:0;updatePageVisibility();return;}
         if(id==RecordLog){setLogging(SendMessageW(logBox,BM_GETCHECK,0,0)==BST_CHECKED);return;}
         if(id==Theme){preferences.theme=(preferences.theme+1)%3;populateTheme();applyTheme();updateTips();markSettings();return;}
         if(id==CaptionMinimize){ShowWindow(hwnd,SW_MINIMIZE);return;}
         if(id==CaptionClose){SendMessageW(hwnd,WM_CLOSE,0,0);return;}
         if(id==Instructions) {mc::UsageWindow::show(hwnd,chinese);return;}
         if(id==DebugParameters) {
-            showDebug=!showDebug;lastDebug=0;overlay.setDebugEnabled(showDebug);
+            showDebug=!showDebug;lastDebug=0;lastLog=qpcSeconds()-1;overlay.setDebugEnabled(showDebug);
+            SendMessageW(status,WM_SETFONT,reinterpret_cast<WPARAM>(showDebug?smallFont:font),FALSE);
             SetWindowTextW(debugButton,showDebug?(chinese?L"隐藏调试参数":L"Hide debug parameters"):tr(L"Show debug parameters"));
             InvalidateRect(debugButton,nullptr,FALSE);return;
         }
@@ -684,7 +785,7 @@ public:
         if(id==DotColor) chooseColor(dotColor);
         if(id==ReticleColor) chooseColor(crossColor);
         if(id==Staggered)overlay.invalidate();
-        if(id==Language) {chinese=!chinese;populateShapes(preferences.reticleShape);for(const auto& label:labels) if(!label.second.empty()) SetWindowTextW(label.first,tr(label.second));populateTheme();populateEdges(preferences.profiles[preferences.selected].edges);populateAppearance(preferences.profiles[preferences.selected].appearance);SetWindowTextW(debugButton,showDebug?(chinese?L"隐藏调试参数":L"Hide debug parameters"):tr(L"Show debug parameters"));refreshValueLabels();InvalidateRect(hwnd,nullptr,FALSE);lastLog=qpcSeconds()-1;}
+        if(id==Language) {chinese=!chinese;populateShapes(preferences.reticleShape);for(const auto& label:labels) if(!label.second.empty()) SetWindowTextW(label.first,tr(label.second));populateTheme();populateEdges(preferences.profiles[preferences.selected].edges);populateAppearance(preferences.profiles[preferences.selected].appearance);SetWindowTextW(debugButton,showDebug?(chinese?L"隐藏调试参数":L"Hide debug parameters"):tr(L"Show debug parameters"));refreshValueLabels();updatePageVisibility();InvalidateRect(hwnd,nullptr,FALSE);lastLog=qpcSeconds()-1;}
         if(id==Refresh) refresh();
         if(id==Attach) { auto index=SendMessageW(list,CB_GETCURSEL,0,0); if(index>=0 && static_cast<size_t>(index)<windows.size()) {
             automatic=false; SendMessageW(autoBox,BM_SETCHECK,BST_UNCHECKED,0); attach(windows[index]); } }
@@ -710,10 +811,11 @@ static LRESULT CALLBACK proc(HWND w,UINT m,WPARAM a,LPARAM b) {
         if(m==WM_ENTERSIZEMOVE){app->liveSizing=true;return 0;}
         if(m==WM_EXITSIZEMOVE){app->liveSizing=false;app->layout();RedrawWindow(w,nullptr,nullptr,RDW_INVALIDATE|RDW_ALLCHILDREN|RDW_UPDATENOW);return 0;}
         if(m==WM_SIZE){if(a==SIZE_MINIMIZED)return 0;app->layout();InvalidateRect(w,nullptr,FALSE);return 0;}
-        if(m==WM_GETMINMAXINFO){auto limits=reinterpret_cast<MINMAXINFO*>(b);limits->ptMinTrackSize={600,640};return 0;}
+        if(m==WM_GETMINMAXINFO){auto limits=reinterpret_cast<MINMAXINFO*>(b);limits->ptMinTrackSize={800,700};return 0;}
         if(m==WM_PAINT) {app->paint();return 0;}
         if(m==WM_ERASEBKGND)return 1;
-        if(m==WM_HSCROLL) {app->markSettings();app->refreshValueLabels();return 0;}
+        if(m==WM_MOUSEWHEEL){POINT p{GET_X_LPARAM(b),GET_Y_LPARAM(b)};RECT r{};GetWindowRect(app->settingsPane,&r);if(PtInRect(&r,p))return SendMessageW(app->settingsPane,m,a,b);}
+        if(m==WM_HSCROLL) {app->sliderChanged(reinterpret_cast<HWND>(b),LOWORD(a));return 0;}
         if(m==WM_CTLCOLORLISTBOX){auto dc=reinterpret_cast<HDC>(a);SetBkColor(dc,mc::fluent::surface);SetTextColor(dc,mc::fluent::ink);return reinterpret_cast<LRESULT>(mc::ui::surfaceBrush());}
         if(m==WM_CTLCOLORSTATIC || m==WM_CTLCOLORBTN) {
             HDC dc=reinterpret_cast<HDC>(a);SetTextColor(dc,mc::fluent::ink);
@@ -721,7 +823,7 @@ static LRESULT CALLBACK proc(HWND w,UINT m,WPARAM a,LPARAM b) {
             if(reinterpret_cast<HWND>(b)==app->shortcutsLabel&&app->keysMissing())SetTextColor(dc,mc::ui::palette.warning);
             SetBkMode(dc,TRANSPARENT);
             RECT r{};GetWindowRect(reinterpret_cast<HWND>(b),&r);MapWindowPoints(nullptr,w,reinterpret_cast<POINT*>(&r),2);
-            return reinterpret_cast<LRESULT>(r.top>=app->uiOffsetY+int(100*app->uiScale) && r.top<app->uiOffsetY+int(986*app->uiScale) ? app->card:app->background);
+            return reinterpret_cast<LRESULT>(r.top>=app->uiOffsetY+int(100*app->uiScale) && r.top<app->uiOffsetY+int(852*app->uiScale) ? app->card:app->background);
         }
         if(m==WM_MEASUREITEM){auto item=reinterpret_cast<MEASUREITEMSTRUCT*>(b);if(item->CtlType==ODT_COMBOBOX){item->itemHeight=36;return TRUE;}}
         if(m==WM_DRAWITEM) {
@@ -729,7 +831,9 @@ static LRESULT CALLBACK proc(HWND w,UINT m,WPARAM a,LPARAM b) {
             if(d->CtlID==CaptionMinimize||d->CtlID==CaptionClose){UiPaintBuffer buffer(d->hDC,d->rcItem);auto item=*d;item.hDC=buffer.dc();mc::paintCaptionButton(item,d->CtlID==CaptionClose);buffer.present();return TRUE;}
             if(d->CtlID>=ReticleFirst&&d->CtlID<ReticleFirst+mc::ReticleShapeCount){int shape=int(d->CtlID)-ReticleFirst;mc::fluent::reticleButton(*d,shape==app->preferences.reticleShape,shape,app->chinese);return TRUE;}
             if(d->CtlType==ODT_COMBOBOX){mc::fluent::comboItem(*d);return TRUE;}
-            bool selected=(d->CtlID==DebugParameters && app->showDebug)||d->CtlID==Attach||(d->CtlID>=TabRegional&&d->CtlID<=TabStatic&&int(d->CtlID-TabRegional)==app->preferences.selected);
+            if(d->CtlID==PageDots||d->CtlID==PageReticle){mc::fluent::navigation(*d,(d->CtlID==PageDots)==(app->settingsPage==0));return TRUE;}
+            if(d->CtlID>=TabRegional&&d->CtlID<=TabStatic){mc::fluent::segment(*d,int(d->CtlID-TabRegional)==app->preferences.selected);return TRUE;}
+            bool selected=(d->CtlID==PageDots&&app->settingsPage==0)||(d->CtlID==PageReticle&&app->settingsPage==1)||(d->CtlID==DebugParameters && app->showDebug)||d->CtlID==Attach||(d->CtlID>=TabRegional&&d->CtlID<=TabStatic&&int(d->CtlID-TabRegional)==app->preferences.selected);
             mc::fluent::button(*d,selected,d->CtlID==Theme?app->preferences.theme:-1);return TRUE;
         }
         if(m==WM_TIMER) { app->tick(); return 0; }

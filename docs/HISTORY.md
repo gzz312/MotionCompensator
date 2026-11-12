@@ -1,5 +1,16 @@
 # 版本记录 / Changelog
 
+## 0.1.0-preview.14 — 设置界面与滑块响应（2026-11-12）
+
+- 设置界面改为横向工作台：顶部连接、左侧预览、右侧点阵与准星独立页面。
+- 页面导航与点阵方案分层显示，外观和运动分组直接展开，右侧内容支持滚动。
+- 修复快速拖动滑块不跟手的问题，减少重复通知与整套设置处理，合并预览刷新并在松手后同步最终状态。
+- 优化预览渐变绘制，简化常规状态显示，更新中英说明。
+
+Introduces a wider workbench with separate Dots and Reticle pages, distinct page/style selection and scrollable appearance/motion groups. Improves slider responsiveness by avoiding duplicate/full-settings work, coalesces previews and synchronizes final values on release. Updates preview drawing, status presentation and the bilingual guide. Capture and dot-motion algorithms are unchanged.
+
+[发布说明 / Release notes](RELEASE-0.1.0-preview.14.md)
+
 ## 0.1.0-preview.11 — 运动识别与采集更新（2026-11-11）
 
 - 更新局部稠密光流与相邻采集帧调度，分析以30次/秒为目标。

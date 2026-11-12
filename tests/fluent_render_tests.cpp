@@ -10,7 +10,7 @@ int main(){
         auto r=mc::centeredPanelRect(work,dpi);int width=r.right-r.left,height=r.bottom-r.top,caption=MulDiv(32,int(dpi),96);
         require(r.left>=work.left&&r.right<=work.right&&r.top>=work.top&&r.bottom<=work.bottom,"startup fits selected monitor work area including negative origins");
         require(std::abs((r.left+r.right)-(work.left+work.right))<=1&&std::abs((r.top+r.bottom)-(work.top+work.bottom))<=1,"startup centered within one pixel");
-        require(std::abs(width/984.f-(height-caption)/1050.f)<.002f,"startup preserves content aspect ratio at all tested DPIs");
+        require(std::abs(width/1120.f-(height-caption)/940.f)<.002f,"startup preserves content aspect ratio at all tested DPIs");
     }
     require(mc::panelResizeHit({0,0},{0,0,600,400},96)==HTTOPLEFT&&mc::panelResizeHit({599,399},{0,0,600,400},96)==HTBOTTOMRIGHT&&mc::panelResizeHit({300,200},{0,0,600,400},96)==HTCLIENT,"custom frame preserves corner sizing and client hit testing");
     INITCOMMONCONTROLSEX init{sizeof(init),ICC_BAR_CLASSES};InitCommonControlsEx(&init);
@@ -24,7 +24,10 @@ int main(){
     for(int i=0;i<100;++i){ValidateRect(slider,nullptr);SendMessageW(slider,TBM_SETPOS,TRUE,i%2?3:22);full();}
     require(notifications==0,"profile loads do not generate user movement notifications");
     SendMessageW(slider,WM_LBUTTONDOWN,MK_LBUTTON,MAKELPARAM(0,18));require(SendMessageW(slider,TBM_GETPOS,0,0)==1,"drag left clamps to minimum");
-    for(int i=0;i<60;++i){ValidateRect(slider,nullptr);SendMessageW(slider,WM_MOUSEMOVE,MK_LBUTTON,MAKELPARAM(i%2?110:310,18));full();}
+    for(int i=0;i<60;++i){ValidateRect(slider,nullptr);SendMessageW(slider,WM_MOUSEMOVE,MK_LBUTTON,MAKELPARAM(i%2?110:310,18));require(!GetUpdateRect(slider,nullptr,FALSE),"pointer movement presents the slider before returning to the message loop");}
+    int countBeforeDuplicate=notifications;
+    for(int i=0;i<120;++i)SendMessageW(slider,WM_MOUSEMOVE,MK_LBUTTON,MAKELPARAM(110,18));
+    require(notifications==countBeforeDuplicate,"identical quantized positions do not notify settings repeatedly");
     SendMessageW(slider,WM_LBUTTONUP,0,MAKELPARAM(500,18));require(SendMessageW(slider,TBM_GETPOS,0,0)==24&&GetCapture()!=slider&&ends==1,"outside release clamps maximum and ends capture once");
     SendMessageW(slider,WM_LBUTTONDOWN,MK_LBUTTON,MAKELPARAM(110,18));SendMessageW(slider,WM_CANCELMODE,0,0);auto before=SendMessageW(slider,TBM_GETPOS,0,0);SendMessageW(slider,WM_MOUSEMOVE,0,MAKELPARAM(310,18));require(SendMessageW(slider,TBM_GETPOS,0,0)==before&&GetCapture()!=slider,"cancelled drag cannot leave a stuck knob");
     SendMessageW(slider,TBM_SETPOS,TRUE,3);SendMessageW(slider,WM_KEYDOWN,VK_RIGHT,0);require(SendMessageW(slider,TBM_GETPOS,0,0)==4,"keyboard increment retained");SendMessageW(slider,WM_KEYDOWN,VK_LEFT,0);require(SendMessageW(slider,TBM_GETPOS,0,0)==3,"keyboard decrement retained");

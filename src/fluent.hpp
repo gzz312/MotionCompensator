@@ -46,7 +46,7 @@ inline void buttonContent(const DRAWITEMSTRUCT& d,bool selected,int themeIcon=-1
         for(int i=0;i<geometry.circleCount;++i){auto c=geometry.circles[i];Gdiplus::SolidBrush brush(color(tint));if(c.filled)g.FillEllipse(&brush,c.center.x-c.radius,c.center.y-c.radius,c.radius*2,c.radius*2);else g.DrawEllipse(&pen,c.center.x-c.radius,c.center.y-c.radius,c.radius*2,c.radius*2);}
         g.Flush();
         const wchar_t* caption=reticleName(reticleIcon,chinese);
-        if(!chinese&&reticleIcon==2)caption=L"Diamond+";
+        if(!chinese&&reticleIcon==2)caption=L"Dia. +";
         if(!chinese&&reticleIcon==5)caption=L"Open +";
         HFONT iconFont=CreateFontW(-std::max(9,int(h*.24f)),0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
         RECT labelRect{d.rcItem.left+1,LONG(d.rcItem.top+h*.61f),LONG(d.rcItem.left+width-1),d.rcItem.bottom-1};
@@ -70,6 +70,22 @@ inline void button(const DRAWITEMSTRUCT& d,bool selected,int themeIcon=-1){
 inline void reticleButton(const DRAWITEMSTRUCT& d,bool selected,int shape,bool chinese){
     UiPaintBuffer frame(d.hDC,d.rcItem);auto content=d;content.hDC=frame.dc();buttonContent(content,selected,-1,shape,chinese);frame.present();
 }
+inline void navigation(const DRAWITEMSTRUCT& d,bool selected){
+    UiPaintBuffer frame(d.hDC,d.rcItem);HDC dc=frame.dc();FillRect(dc,&d.rcItem,ui::surfaceBrush());
+    Gdiplus::Graphics g(dc);g.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);float h=float(d.rcItem.bottom),scale=h/36.f;
+    if(hovered(d.hwndItem))rounded(g,0,0,float(d.rcItem.right),h,4*scale,ui::palette.hover);
+    HFONT font=CreateFontW(-std::max(12,int(20*scale)),0,0,0,selected?FW_SEMIBOLD:FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI Variable Text");
+    RECT r=d.rcItem;r.left+=int(12*scale);text(dc,r,label(d.hwndItem),font,selected?ink:muted);DeleteObject(font);
+    if(selected)rounded(g,12*scale,h-3*scale,24*scale,3*scale,1.5f*scale,accent);
+    if((d.itemState&ODS_FOCUS)&&!(SendMessageW(d.hwndItem,WM_QUERYUISTATE,0,0)&UISF_HIDEFOCUS)){RECT focus=d.rcItem;InflateRect(&focus,-3,-3);DrawFocusRect(dc,&focus);}frame.present();
+}
+inline void segment(const DRAWITEMSTRUCT& d,bool selected){
+    UiPaintBuffer frame(d.hDC,d.rcItem);HDC dc=frame.dc();HBRUSH bg=CreateSolidBrush(ui::palette.hover);FillRect(dc,&d.rcItem,bg);DeleteObject(bg);
+    Gdiplus::Graphics g(dc);g.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);float h=float(d.rcItem.bottom),width=float(d.rcItem.right);
+    if(selected||hovered(d.hwndItem))rounded(g,1,2,width-2,h-4,4,selected?ui::palette.selected:ui::palette.pressed,selected?line:CLR_INVALID);
+    RECT r=d.rcItem;InflateRect(&r,-6,0);text(dc,r,label(d.hwndItem),reinterpret_cast<HFONT>(SendMessageW(d.hwndItem,WM_GETFONT,0,0)),selected?ink:muted,DT_CENTER|DT_VCENTER|DT_SINGLELINE|DT_END_ELLIPSIS);
+    if((d.itemState&ODS_FOCUS)&&!(SendMessageW(d.hwndItem,WM_QUERYUISTATE,0,0)&UISF_HIDEFOCUS)){RECT focus=d.rcItem;InflateRect(&focus,-3,-3);DrawFocusRect(dc,&focus);}frame.present();
+}
 inline void comboItem(const DRAWITEMSTRUCT& d){
     initialize();if(d.itemState&ODS_COMBOBOXEDIT){InvalidateRect(d.hwndItem,nullptr,FALSE);return;}HBRUSH white=CreateSolidBrush(surface);FillRect(d.hDC,&d.rcItem,white);DeleteObject(white);if(d.itemID==UINT(-1))return;
     std::wstring value(size_t(SendMessageW(d.hwndItem,CB_GETLBTEXTLEN,d.itemID,0))+1,L'\0');SendMessageW(d.hwndItem,CB_GETLBTEXT,d.itemID,reinterpret_cast<LPARAM>(value.data()));value.resize(wcslen(value.c_str()));
@@ -89,7 +105,12 @@ inline void slideTo(HWND w,int x){
     RECT r{};GetClientRect(w,&r);auto geometry=sliderGeometry(w,r);
     int low=int(SendMessageW(w,TBM_GETRANGEMIN,0,0)),high=int(SendMessageW(w,TBM_GETRANGEMAX,0,0));
     float ratio=geometry.right>geometry.left?std::clamp((x-geometry.left)/(geometry.right-geometry.left),0.f,1.f):0;
-    int value=low+int(std::lround((high-low)*ratio));SendMessageW(w,TBM_SETPOS,FALSE,value);InvalidateRect(w,nullptr,FALSE);notifySlider(w,TB_THUMBTRACK);
+    int value=low+int(std::lround((high-low)*ratio));
+    if(value==SendMessageW(w,TBM_GETPOS,0,0))return;
+    SendMessageW(w,TBM_SETPOS,FALSE,value);
+    // Present only the small slider surface before notifying the settings page.
+    RedrawWindow(w,nullptr,nullptr,RDW_INVALIDATE|RDW_UPDATENOW);
+    notifySlider(w,TB_THUMBTRACK);
 }
 inline void renderContent(HWND window,HDC dc,RECT r,State& state){
     initialize();HBRUSH background=ui::surfaceBrush();COLORREF foreground=ink;
