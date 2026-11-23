@@ -4,7 +4,7 @@
 
 The application has no automatic upload, account login, cloud analysis or automatic updater. Capture and motion processing run locally.
 
-- Preferences use the current user's `HKCU\Software\MotionCompensator`, with PreferencesV4 and older-format compatibility.
+- Global preferences, registered game executable paths, per-game visuals and key rules are stored under the current Windows user's `HKCU\Software\MotionCompensator`. You can remove registered games from Overview.
 - Logging is off on every startup. Enabling **Log** writes to `logs/` beside the EXE; disabling it stops recording and keeps existing files.
 - Diagnostics can include target process/window details, timestamps, frame rates, input-event statistics/control states, optical flow and compensation vectors. Arbitrary typed text is not logged. Logs are not anonymous: review before sharing.
 - The normal logging switch does not save game screenshots. Explicit developer `--flow-debug` with diagnostic recording may save a limited number of grayscale frames; this is separate from normal logging.

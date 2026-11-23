@@ -3,9 +3,11 @@ param(
     [string]$Compiler='',
     [string]$ToolsRoot='',
     [string]$OpenCVRoot='',
-    [switch]$SmokeTest
+    [switch]$SmokeTest,
+    [switch]$CompileOnly
 )
 $ErrorActionPreference='Stop'
+if($CompileOnly -and $SmokeTest){throw 'CompileOnly and SmokeTest cannot be combined'}
 function Find-BuildTool([string]$Name,[string]$Relative) {
     if ($ToolsRoot) { $candidate=Join-Path $ToolsRoot $Relative; if(Test-Path -LiteralPath $candidate){return (Resolve-Path -LiteralPath $candidate).Path} }
     $command=Get-Command $Name -ErrorAction SilentlyContinue
@@ -24,6 +26,12 @@ $options=@('-S',$PSScriptRoot,'-B',$buildDir,'-G','Ninja','-DCMAKE_BUILD_TYPE=Re
 if($OpenCVRoot){$opencv=(Resolve-Path -LiteralPath $OpenCVRoot).Path;$options+="-DOpenCV_DIR=$opencv"}
 & $cmake @options
 if($LASTEXITCODE -ne 0){throw 'CMake configuration failed'}
+if($CompileOnly){
+    & $cmake --build $buildDir --target MotionCompensator
+    if($LASTEXITCODE -ne 0){throw 'Build failed'}
+    Write-Host "Compiled: $buildDir/MotionCompensator.exe"
+    return
+}
 & $cmake --build $buildDir
 if($LASTEXITCODE -ne 0){throw 'Build failed'}
 & $ctest --test-dir $buildDir --output-on-failure

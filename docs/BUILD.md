@@ -30,7 +30,7 @@ Windows x64，MSYS2 UCRT64 GCC15.2，OpenCV4.12静态core/imgproc/video，CMake�
 ./build.ps1 -OpenCVRoot '<OpenCV静态安装目录>'
 ```
 
-默认输出`build-preview/`，并运行全部CTest检查。可用`-BuildDirectory`选择其他目录。若使用项目内`third_party/opencv/`缓存，可省略`-OpenCVRoot`。
+默认输出`build-preview/`，并运行全部 CTest 检查。可用`-BuildDirectory`选择其他目录。仅需编译程序时可用`-CompileOnly`。若使用项目内`third_party/opencv/`缓存，可省略`-OpenCVRoot`。
 
 标准CMake方式：
 
@@ -48,7 +48,7 @@ CMake在非Windows平台会明确失败。版本由`VERSION`读取并生成程�
 ./package.ps1 -OpenCVRoot '<OpenCV静态安装目录>'
 ```
 
-先构建并检查，再生成`versions/<VERSION>/`和`dist/MotionCompensator-<VERSION>-win-x64.zip`。包内包括单EXE、简短开始说明、已知问题、完整LICENSE.txt、项目致谢、第三方许可和EXE校验值。程序本身仍只需EXE，其余文件便于审阅。
+先构建并检查，再生成`versions/<VERSION>/`和`dist/MotionCompensator-<VERSION>-win-x64.zip`。`package.ps1 -CompileOnly`可用于只编译并打包的流程。包内包括 EXE、双语开始说明、已知问题、完整 LICENSE.txt、项目致谢、第三方许可和 EXE 校验值。
 
 `-SmokeTest`仅是软件自身窗口的WGC自采集检查，约6秒，默认不记录日志。非交互桌面或受限环境可能无法取得WGC权限；不要以管理员权限掩盖该失败。真实桌面的三方案检查程序为构建目录的`desktop_smoke.exe`，显式启用诊断日志，详情见TESTING.md。
 

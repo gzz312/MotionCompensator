@@ -2,12 +2,13 @@ param(
     [string]$BuildDirectory='build-preview',
     [string]$Compiler='',
     [string]$ToolsRoot='',
-    [string]$OpenCVRoot=''
+    [string]$OpenCVRoot='',
+    [switch]$CompileOnly
 )
 $ErrorActionPreference='Stop'
 $version=(Get-Content -LiteralPath (Join-Path $PSScriptRoot 'VERSION') -Raw).Trim()
 if($version -notmatch '^\d+\.\d+\.\d+-preview\.\d+$'){throw 'Expected a local preview version in VERSION'}
-& (Join-Path $PSScriptRoot 'build.ps1') -BuildDirectory $BuildDirectory -Compiler $Compiler -ToolsRoot $ToolsRoot -OpenCVRoot $OpenCVRoot
+& (Join-Path $PSScriptRoot 'build.ps1') -BuildDirectory $BuildDirectory -Compiler $Compiler -ToolsRoot $ToolsRoot -OpenCVRoot $OpenCVRoot -CompileOnly:$CompileOnly
 $buildDir=if([IO.Path]::IsPathRooted($BuildDirectory)){$BuildDirectory}else{Join-Path $PSScriptRoot $BuildDirectory}
 $destination=Join-Path $PSScriptRoot "versions/$version"
 New-Item -ItemType Directory -Force -Path $destination | Out-Null

@@ -12,15 +12,18 @@ struct DotProfile {
     bool operator==(const DotProfile&) const = default;
 };
 struct Preferences {
-    std::array<DotProfile,3> profiles{};
+    std::array<DotProfile,VisualStyleCount> profiles{};
     int selected=0,reticleShape=1,theme=0; // system, light, dark; logging is deliberately not persisted
     float reticleOpacity=1,reticleSize=10;
     Color reticleColor{.2f,1,.45f};
     bool chinese=true,visible=true,automatic=true;
+    bool meshDepth=false;
+    float meshDepthStrength=.70f;
     Preferences() {
         profiles[1].enhancement=true;
         profiles[1].radius=24;profiles[1].opacity=.75f;profiles[1].spacing=150;profiles[1].edgeWidth=300;profiles[1].staggered=true;profiles[1].color={0,1,0};profiles[1].boundaryFade=false;
         profiles[2].enhancement=false;profiles[2].boundaryFade=false;
+        profiles[TriangleStyle].boundaryFade=false;
     }
     bool operator==(const Preferences&) const = default;
 };

@@ -19,7 +19,7 @@ Optional parameters include `-CompilerRoot '<UCRT64/bin>'` and `-ToolsRoot`. Ins
 ./package.ps1 -OpenCVRoot '<static OpenCV installation>'
 ```
 
-The default build directory is `build-preview/`; override it with `-BuildDirectory`. The build script runs CTest. The packager creates `versions/<VERSION>/` and `dist/MotionCompensator-<VERSION>-win-x64.zip` containing the EXE, start guide, known issues, full project license, credits, third-party notices and EXE hash. Only the EXE is required to run.
+The default build directory is `build-preview/`. To select a different directory, pass `-BuildDirectory`. The build and packaging scripts run CTest by default. Use `-CompileOnly` to build just the app. The packager creates `versions/<VERSION>/` and `dist/MotionCompensator-<VERSION>-win-x64.zip` containing the EXE, bilingual start guides, known issues, full project license, credits, third-party notices and EXE hash.
 
 Standard CMake also works:
 

@@ -10,6 +10,11 @@ struct DebugSnapshot {
     float backgroundBlend=0;
     bool hasSelectedFlow=false;
     MotionState motionState=MotionState::Unknown;int heldRegions=0;
+    int modeledCells=0,motionBoundaries=0;
+    int backgroundSupport=0,foregroundSuppressed=0;
+    int independentCells=0;
+    bool backgroundActive=false,backgroundHeld=false;
+    float cameraConfidence=0;
     MotionSample flow{};
     double now=0,captureAgeMs=-1,analysisMs=-1,fusionMs=-1,submitMs=-1,tickMs=-1;
     double captureFps=-1,analysisFps=-1,renderFps=-1;
@@ -19,7 +24,9 @@ struct DebugSnapshot {
 inline std::wstring formatDebug(const DebugSnapshot& d) {
     std::wostringstream s;s<<std::fixed<<std::setprecision(1);
     auto metric=[&](double value){if(std::isfinite(value)&&value>=0)s<<value;else s<<L"N/A";};
-    s<<L"MotionCompensator | "<<(d.style==0?L"Regional":d.style==1?L"Screen-edge":L"Static")<<L" | "<<(d.staggered?L"Staggered":L"Square")<<L"\n";
+    s<<L"MotionCompensator | "<<(d.style==TriangleStyle?L"Mesh dots":d.style==0?L"Regional":d.style==1?L"Screen-edge":L"Static");
+    if(d.style!=TriangleStyle)s<<L" | "<<(d.staggered?L"Staggered":L"Square");
+    s<<L"\n";
     s<<L"FPS capture/analysis/submit: ";metric(d.captureFps);s<<L" / ";metric(d.analysisFps);s<<L" / ";metric(d.renderFps);
     s<<L" | Tick ms: ";metric(d.tickMs);s<<L"\n";
     s<<L"Frame age at receipt ms: ";metric(d.captureAgeMs);s<<L" | Current frame age ms: ";

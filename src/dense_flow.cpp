@@ -1,4 +1,6 @@
 #include "tracking.hpp"
+#include "chroma_motion.hpp"
+#include <chrono>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/video/tracking.hpp>
 namespace mc {
@@ -29,7 +31,8 @@ DenseFlowWorkspace::~DenseFlowWorkspace()=default;
 // that instance can dereference an empty vector. Recreate on capture resets.
 void DenseFlowWorkspace::reset(){data_=std::make_unique<Data>();}
 MotionSample estimateDenseFlow(const std::vector<float>& previous,const std::vector<float>& current,
-    int w,int h,double dt,double timestamp,int sourceW,int sourceH,DenseFlowWorkspace* workspace) {
+    int w,int h,double dt,double timestamp,int sourceW,int sourceH,DenseFlowWorkspace* workspace,
+    std::span<const uint16_t> previousChroma,std::span<const uint16_t> currentChroma,const ChromaInputHint& input) {
     MotionSample result;result.timestamp=timestamp;result.regionConfidence.fill(0);
     result.issue=MotionIssue::InvalidInput;result.denseFlow=true;
     if(std::isfinite(dt)&&dt>0)result.pairIntervalMs=dt*1000;
@@ -90,7 +93,15 @@ MotionSample estimateDenseFlow(const std::vector<float>& previous,const std::vec
             ++result.features;if(valid){++result.tracked;++stats.tracked;}
         }
     }
-    // Direct local observations only; no wider matching or parent borrowing.
+    // Retain audited local observations. Aggregation also fits a separate
+    // cell-balanced camera model, without changing these direct observations.
+    result.grayscaleTracked=result.tracked;
+    if(!previousChroma.empty()&&!currentChroma.empty()){
+        const auto begin=std::chrono::steady_clock::now();
+        detail::recoverChromaMotion(result,w,h,maxRoundTrip,{float(sourceW)/w/float(dt),float(sourceH)/h/float(dt)},
+                                    previousChroma,currentChroma,input);
+        result.chromaMs=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-begin).count();
+    }
     result.directEvidence=true;
     result=detail::aggregateFlow(std::move(result),w,h,dt,sourceW,sourceH,maxRoundTrip);
     return result;

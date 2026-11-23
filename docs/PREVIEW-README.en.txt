@@ -1,29 +1,12 @@
-MotionCompensator — Preview
-中文: START-HERE.txt
+MotionCompensator 0.2.0-preview.10
+中文：START-HERE.txt
 
-Close other versions, extract the archive and run MotionCompensator.exe.
-Prefer a borderless/windowed game. Automatic connection supports recognized
-foreground games; otherwise select the game window manually.
-Use the app's 中文 / English button to switch interface language.
+Extract the ZIP and open MotionCompensator.exe. Use borderless or windowed mode in the game.
+In Overview, refresh the window list, choose your game and select Register and connect. Enable automatic connection to reconnect when a registered game next comes to the foreground.
+In Visual effects, choose Static, Screen-edge, Regional or Mesh dots and adjust the center reticle if desired. Return to the game to see the overlay.
+By default, Ctrl+Alt+F8 cycles styles, Ctrl+Alt+F9 toggles the overlay, and Ctrl+Alt+F10 stops capture and automatic connection. You can change these shortcuts in General.
+To collect a log while reproducing an issue, turn on Log in Diagnostics. The app saves logs in the logs folder beside the EXE.
 
-Ctrl+Alt+F8: cycle dot styles
-Ctrl+Alt+F9: show/hide overlay
-Ctrl+Alt+F10: stop capture
-
-The in-app User Guide includes instructions and design references.
-Licenses & credits contains the complete project and third-party terms.
-Logging is off by default. Enable Log only when diagnosing a problem,
-then disable it. Files are not uploaded automatically.
-
-Free use and sharing are allowed. Commercial integration is allowed with
-attribution. Standalone/rebranded sale and separate paid unlocks are prohibited.
-Read LICENSE.txt for the governing Chinese terms and English summary.
-Third-party terms remain separate.
-Project releases: https://github.com/gzz312/MotionCompensator/releases
-
-See en/KNOWN-ISSUES.md. Experiences vary by person and game;
-stop if discomfort develops. Non-system dependencies are embedded in the EXE;
-Windows must still provide the system graphics components. No separate
-OpenCV installation, compiler or application DLLs are needed.
-
-Interface: connect a game at the top and preview on the left. Switch Dots / Reticle on the right. Dot settings are grouped by style, appearance and motion; scroll when content overflows. Logging and diagnostics are at the bottom.
+See the built-in User Guide for setup and choosing a dot style, and Licenses & credits for license terms, design references and third-party notices.
+See en/KNOWN-ISSUES.md for compatibility and RELEASE-PREVIEW.md for release notes.
+Downloads and releases https://github.com/gzz312/MotionCompensator/releases

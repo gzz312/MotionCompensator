@@ -53,7 +53,8 @@ void Overlay::bindSurface() {
         D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM,D2D1_ALPHA_MODE_PREMULTIPLIED),96,96);
     check(context_->CreateBitmapFromDxgiSurface(surface.Get(),&props,&bitmap_),"D2D swap bitmap"); context_->SetTarget(bitmap_.Get());
 }
-bool Overlay::draw(RECT rect,const mc::VisualSettings& settings,const std::array<mc::Vec2,9>& velocity,float dt,bool dynamic) {
+bool Overlay::draw(RECT rect,const mc::VisualSettings& settings,const mc::RegionalVisualMotion& motion,
+                   const mc::MotionField* field,float gain,bool fieldMoving,float appearanceElapsed) {
     int w=rect.right-rect.left,h=rect.bottom-rect.top; if(w<1 || h<1) {hide(); return false;}
     // A fullscreen/borderless target can reorder itself without moving. Keep
     // z-order maintenance independent of dirty drawing; never activate it.
@@ -63,12 +64,19 @@ bool Overlay::draw(RECT rect,const mc::VisualSettings& settings,const std::array
             throw std::runtime_error("Overlay positioning failed");
         lastRaise_=now;
     }
-    if(activeStyle_!=settings.style) {resetMotion();activeStyle_=settings.style;}
-    auto fixed=settings.style==2?mc::staticDots(w,h,settings):std::vector<mc::DotVisual>{};
-    const auto& dots=settings.style==2?fixed:settings.style==1?edgeDots_.update(velocity,w,h,settings,dt):dots_.update(velocity,w,h,settings.spacing,dt,dynamic,settings.enhancement,settings.boundaryFade,settings.radius,settings.staggered);
-    bool moved=dots.size()!=lastDots_.size();
+    const bool triangular=settings.style==mc::TriangleStyle;
+    const bool drawMeshEdges=triangular&&meshEdgesVisible_;
+    meshBackend_.setEdgesEnabled(drawMeshEdges);
+    if(!triangular&&lastSettings_.style==mc::TriangleStyle)meshBackend_.suspend();
+    if (!triangular&&visualBackend_.selectStyle(settings.style)) painted_=false;
+    const auto& dots=triangular?meshBackend_.update(w,h,settings,field,motion.elapsedSeconds,gain,fieldMoving,appearanceElapsed)
+                              :visualBackend_.update(w,h,settings,motion);
+    bool moved=dots.size()!=lastDots_.size()||(drawMeshEdges&&drawnMeshRevision_!=meshBackend_.stats().rewired);
+    const float positionThreshold=triangular?.035f:.1f;
     if(!moved) for(size_t i=0;i<dots.size();++i) {
-        if(std::abs(dots[i].position.x-lastDots_[i].position.x)>.1f || std::abs(dots[i].position.y-lastDots_[i].position.y)>.1f || std::abs(dots[i].opacity-lastDots_[i].opacity)>.005f || std::abs(dots[i].radiusScale-lastDots_[i].radiusScale)>.002f || std::abs(dots[i].blendWeight-lastDots_[i].blendWeight)>.005f) {moved=true;break;}
+        if(std::abs(dots[i].position.x-lastDots_[i].position.x)>positionThreshold || std::abs(dots[i].position.y-lastDots_[i].position.y)>positionThreshold || std::abs(dots[i].opacity-lastDots_[i].opacity)>.005f || std::abs(dots[i].radiusScale-lastDots_[i].radiusScale)>.002f || std::abs(dots[i].blendWeight-lastDots_[i].blendWeight)>.005f ||
+           std::abs(dots[i].depthCue-lastDots_[i].depthCue)>.004f || std::abs(dots[i].depthAmount-lastDots_[i].depthAmount)>.004f ||
+           (dots[i].depthAmount==0&&lastDots_[i].depthAmount!=0)) {moved=true;break;}
     }
     if(!moved && painted_ && IsWindowVisible(window_) && EqualRect(&rect,&lastRect_) && settings==lastSettings_) return false;
     if(w!=width_ || h!=height_) {
@@ -76,6 +84,21 @@ bool Overlay::draw(RECT rect,const mc::VisualSettings& settings,const std::array
         check(swap_->ResizeBuffers(2,w,h,DXGI_FORMAT_B8G8R8A8_UNORM,0),"Resize overlay"); width_=w; height_=h; bindSurface();
     }
     context_->BeginDraw(); context_->Clear(D2D1::ColorF(0.f,0.f,0.f,0.f));
+    if(drawMeshEdges){
+        const auto nodes=meshBackend_.nodes();
+        const float reach=meshBackend_.spacing()*(mc::meshEdgeReach+.08f);
+        for(auto edge:meshBackend_.edges()){
+            const auto& a=nodes[edge.first];const auto& b=nodes[edge.second];
+            const auto p=a.position,q=b.position;
+            const float dx=p.x-q.x,dy=p.y-q.y;
+            if((p.x<0&&q.x<0)||(p.x>w&&q.x>w)||(p.y<0&&q.y<0)||(p.y>h&&q.y>h)||dx*dx+dy*dy>reach*reach)continue;
+            const float alpha=std::min(a.opacity*mc::dotVisibility(p.x,p.y,float(w),float(h),settings.radius,settings.holeDiameter),
+                                       b.opacity*mc::dotVisibility(q.x,q.y,float(w),float(h),settings.radius,settings.holeDiameter));
+            if(alpha<=.01f)continue;
+            brush_->SetColor(D2D1::ColorF(.35f,.76f,1.f,.58f*alpha*settings.opacity));
+            context_->DrawLine(D2D1::Point2F(p.x,p.y),D2D1::Point2F(q.x,q.y),brush_.Get(),1.f);
+        }
+    }
     // Regional lattices keep their original clipping and spacing. Boundary
     // softness only attenuates the crossing dots by a conservative amount.
     visibleDots_=0;
@@ -83,16 +106,18 @@ bool Overlay::draw(RECT rect,const mc::VisualSettings& settings,const std::array
     for(const auto& dot:dots) {
         float px=dot.position.x,py=dot.position.y;
         float dotRadius=settings.radius*dot.radiusScale;
-        float alpha=dot.opacity*settings.opacity*(settings.style==2?1.f:mc::dotVisibility(px,py,float(w),float(h),dotRadius,settings.holeDiameter));
+        const float innerOpacity=.12f+.48f*std::abs(dot.depthCue);
+        float alpha=dot.opacity*settings.opacity*(settings.style==2?1.f:mc::dotVisibility(px,py,float(w),float(h),dotRadius,settings.holeDiameter,innerOpacity));
         if(alpha<=0 || px<-dotRadius || py<-dotRadius || px>w+dotRadius || py>h+dotRadius) continue;
-        if(dynamic && settings.style==0 && clippedRegion!=dot.region) {
+        if(motion.dynamic && settings.style==0 && clippedRegion!=dot.region) {
             if(clippedRegion>=0) context_->PopAxisAlignedClip();
             clippedRegion=dot.region;int col=dot.region%3,row=dot.region/3;
             context_->PushAxisAlignedClip(D2D1::RectF(col*w/3.f,row*h/3.f,(col+1)*w/3.f,(row+1)*h/3.f),D2D1_ANTIALIAS_MODE_ALIASED);
         }
-        if((!dynamic || settings.style!=0) || (px+dotRadius>(dot.region%3)*w/3.f && px-dotRadius<(dot.region%3+1)*w/3.f && py+dotRadius>(dot.region/3)*h/3.f && py-dotRadius<(dot.region/3+1)*h/3.f))++visibleDots_;
+        if((!motion.dynamic || settings.style!=0) || (px+dotRadius>(dot.region%3)*w/3.f && px-dotRadius<(dot.region%3+1)*w/3.f && py+dotRadius>(dot.region/3)*h/3.f && py-dotRadius<(dot.region/3+1)*h/3.f))++visibleDots_;
         float background=light_.timestamp>0?light_.sample(px,py,float(w),float(h)):.5f;
-        for(auto layer:mc::dotLayers(settings.dots,dotRadius,alpha,settings.style==2&&dot.region==1,settings.appearance,background)){
+        const auto color=dot.depthAmount==0?settings.dots:mc::depthTint(settings.dots,dot.depthCue,dot.depthAmount);
+        for(auto layer:mc::dotLayers(color,dotRadius,alpha,settings.style==2&&dot.region==1,settings.appearance,background)){
             brush_->SetColor(D2D1::ColorF(layer.color.r,layer.color.g,layer.color.b,layer.opacity));
             context_->FillEllipse(D2D1::Ellipse(D2D1::Point2F(px,py),layer.radius,layer.radius),brush_.Get());
         }
@@ -109,6 +134,7 @@ bool Overlay::draw(RECT rect,const mc::VisualSettings& settings,const std::array
     HRESULT present=swap_->Present(0,DXGI_PRESENT_DO_NOT_WAIT);
     if(present!=DXGI_ERROR_WAS_STILL_DRAWING) check(present,"Present overlay");
     painted_=present!=DXGI_ERROR_WAS_STILL_DRAWING; lastRect_=rect; lastSettings_=settings;if(painted_) lastDots_=dots;
+    if(painted_&&drawMeshEdges)drawnMeshRevision_=meshBackend_.stats().rewired;
     return painted_;
 }
 

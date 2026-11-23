@@ -1,20 +1,11 @@
-# Known issues and preview limits
+# Known issues
 
 [中文](../KNOWN-ISSUES.md) | **English**
 
-This preview is not a stable release and has not established general motion-discomfort relief.
+- Use borderless or windowed mode. Exclusive fullscreen can obscure the external overlay. Follow the target game's rules for external overlays.
+- Plain roads, snow, sky, motion blur, cuts and large foreground objects can reduce usable motion observations. Dynamic dots may briefly pause or behave differently in adjacent areas.
+- Compatibility checks have focused on Windows x64 and UCRT64. Additional monitor arrangements, DPI scales and full keyboard navigation need further validation. The settings window scales proportionally.
+- Running multiple versions can cause shortcut conflicts. Close the earlier version before updating, or choose another shortcut in General.
+- If you enable logging, run the EXE from a writable folder. The app creates a logs folder beside the EXE.
 
-- The primary focus is first-person games. Third-person driving, large stationary foregrounds and uniform backgrounds can cause missed motion, excessive speed estimates or interrupted dots; these cases are not specifically optimized.
-- Analysis targets 30 updates/s, not game FPS. Shorter pairs cannot restore blurred detail and may amplify small matching errors into speed jitter.
-- Exclusive fullscreen can hide external overlays; prefer borderless/windowed mode. Compatibility and game/anti-cheat rules vary.
-- Low texture, blur, cuts and weapon/HUD occlusion can reduce optical-flow quality. Input prediction estimates intent, not actual jumping, walking into a wall, driving or cinematic motion.
-- Dynamic styles do not automatically switch to Static. With insufficient observations, the input/dynamic path remains and a waiting/quality status may appear.
-- Controls may still flicker or resize incorrectly in some display environments. Include the theme, display scaling and reproduction steps when reporting a problem.
-- Multi-monitor and all DPI scales are not fully validated. Maximize remains disabled.
-- Full Tab navigation is incomplete; mouse operation is the primary path.
-- Concurrent versions can compete for global shortcuts. Close other versions first; conflicts are indicated and retried.
-- Logs require a writable directory beside the EXE. Failure is reported without silently writing elsewhere.
-- The grayscale OpenCV backend exists. NVIDIA optical flow, RGB flow, AI segmentation/prediction and official game telemetry are not implemented.
-- Only the Windows/UCRT64 build is validated. MSVC, different GPUs and extended game sessions need broader testing.
-
-The settings window still scales proportionally, with independently scrollable settings content. Small-screen, high-DPI and multi-monitor adaptation remain incomplete. Software checks do not guarantee flicker-free operation or fixed input latency on every system.
+Comfort varies by game and player. Try Static or Screen-edge dots for a short session and adjust to your preference.

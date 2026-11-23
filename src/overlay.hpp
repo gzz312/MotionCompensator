@@ -1,6 +1,7 @@
 #pragma once
 #include "common.hpp"
-#include "dots.hpp"
+#include "visual_backend.hpp"
+#include "triangle_mesh.hpp"
 #include "appearance.hpp"
 #include "debug_visual.hpp"
 #include <d3d11.h>
@@ -29,9 +30,10 @@ class Overlay {
     RECT lastRect_{};
     mc::VisualSettings lastSettings_{};
     mc::BackgroundLight light_;
-    mc::RegionalDotField dots_;
-    mc::EdgeDotField edgeDots_;
-    int activeStyle_=0;
+    mc::LegacyVisualBackend visualBackend_;
+    mc::LiveTriangleBackend meshBackend_;
+    bool meshEdgesVisible_=false;
+    uint64_t drawnMeshRevision_=0;
     std::vector<mc::DotVisual> lastDots_;
     bool painted_=false;
     double lastRaise_=0;
@@ -43,10 +45,18 @@ public:
     void setDebugSnapshot(const mc::DebugSnapshot& value,bool chinese) {debugHistory_.push(value);debugChinese_=chinese;painted_=false;}
     void setBackground(const mc::BackgroundLight& light){if(light.timestamp!=light_.timestamp){light_=light;painted_=false;}}
     void invalidate() {painted_=false;}
-    void resetMotion() {dots_.reset();edgeDots_.reset();painted_=false;}
-    void hide() { if(window_ && IsWindowVisible(window_))debugHistory_.clear();resetMotion(); if(window_ && IsWindowVisible(window_)) { ShowWindow(window_, SW_HIDE); painted_=false; } }
-    bool draw(RECT rect, const mc::VisualSettings& settings,const std::array<mc::Vec2,9>& velocity,float dt,bool dynamic);
-    size_t dotCount() const {return activeStyle_==2?16:activeStyle_==1?edgeDots_.dots().size():dots_.dots().size();}
-    float phaseMax() const {return activeStyle_==1?edgeDots_.phaseMax():dots_.phaseMax();}
+    void setMeshEdgesVisible(bool visible) {meshEdgesVisible_=visible;painted_=false;}
+    void resetMotion() {visualBackend_.reset();meshBackend_.reset();painted_=false;}
+    void hide() {
+        if(window_&&IsWindowVisible(window_)){
+            debugHistory_.clear();visualBackend_.reset();meshBackend_.suspend();visibleDots_=0;
+            ShowWindow(window_,SW_HIDE);painted_=false;
+        }
+    }
+    bool draw(RECT rect, const mc::VisualSettings& settings, const mc::RegionalVisualMotion& motion,
+              const mc::MotionField* field=nullptr,float gain=1.f,bool fieldMoving=false,float appearanceElapsed=0.f);
+    size_t dotCount() const {return lastSettings_.style==mc::TriangleStyle?visibleDots_:visualBackend_.dotCount();}
+    float phaseMax() const {return lastSettings_.style==mc::TriangleStyle?0.f:visualBackend_.phaseMax();}
+    const mc::LiveTriangleBackend& liveMesh() const {return meshBackend_;}
     HWND window() const { return window_; }
 };

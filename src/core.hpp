@@ -9,6 +9,7 @@ namespace mc {
 inline constexpr int ReticleSizeMin=4,ReticleSizeMax=64;
 inline constexpr int dotRadiusMax(int style){return style==1?64:24;}
 struct Vec2 { float x{}, y{}; };
+struct ChromaInputHint { std::array<Vec2,9> directions{}; double timestamp{}; };
 enum class MotionIssue { Warming, Valid, InvalidInput, LowTexture, TrackingFailed, Inconsistent, LowCoverage };
 struct FlowObservation {
     Vec2 position{},displacement{}; // Analysis pixels, before output scaling.
@@ -18,6 +19,7 @@ struct FlowObservation {
     Vec2 originalDisplacement{};
     bool originalValid=false;
     uint8_t failure=0; // Rejection bits: texture/photo/consistency.
+    bool chromaMatch=false;
 };
 struct FlowCell {
     Vec2 velocity{},smoothed{}; // Source pixels/second; raw and neighbourhood result.
@@ -28,7 +30,18 @@ struct FlowCell {
     float directConfidence=0;
     int directInliers=0;
     int rejectedTexture=0,rejectedPhoto=0,rejectedConsistency=0;
+    bool chromaReplacesQuiet=false;
 
+};
+struct AffineFlow {
+    // Analysis is normalized about the image center. Output is in source px/s.
+    Vec2 center{},slopeX{},slopeY{};
+    std::array<bool,81> support{};
+    float confidence{},residual{}; // RMS residual in source px/s.
+    Vec2 at(float u,float v) const {
+        return {center.x+slopeX.x*(u-.5f)+slopeY.x*(v-.5f),
+                center.y+slopeX.y*(u-.5f)+slopeY.y*(v-.5f)};
+    }
 };
 struct MotionSample {
     std::array<Vec2, 9> velocity{}; double timestamp{},completedTimestamp{}; float confidence{};
@@ -49,6 +62,12 @@ struct MotionSample {
     int densePixels=0,rejectedTexture=0,rejectedPhotometric=0,rejectedConsistency=0;
     double pairIntervalMs=0;
     bool directEvidence=false;
+    bool chromaActive=false,chromaBudgetLimited=false;
+    int grayscaleTracked=0,chromaAttempts=0,chromaAccepted=0,chromaCells=0;
+    int chromaQuietCells=0,chromaCorroboratedCells=0;
+    double chromaMs=0;
+    int sourceWidth=0,sourceHeight=0;
+    AffineFlow cameraModel, movingCameraModel;
 
 };
 inline bool motionFresh(const MotionSample& sample,double now) {
@@ -98,20 +117,24 @@ public:
     void reset() { offsets_ = {}; }
 };
 struct Color { float r=1,g=1,b=1; bool operator==(const Color&) const = default; };
+inline constexpr int TriangleStyle=3,VisualStyleCount=4;
+inline constexpr bool hasStaggeredOption(int style){return style==0||style==1;}
 struct VisualSettings {
     bool enhancement=true;
     bool staggered=false;
     bool boundaryFade=true;
     int appearance=1; // fixed, brightness, outline, combined
-    int style=0,edges=0; // regional, screen-edge, static; left/right, top/bottom, all
+    int style=0,edges=0; // regional, screen-edge, static, triangle; left/right, top/bottom, all
     float edgeWidth=140;
     float radius=3.f,opacity=1.f,spacing=122.f;
     Color dots{},reticle{.2f,1.f,.45f};
     float reticleOpacity=1.f,reticleSize=10.f,holeDiameter=.10f;
     int reticleShape=1; // stable shape IDs are defined in reticle.hpp
+    bool meshDepth=false;
+    float meshDepthStrength=.70f;
     bool operator==(const VisualSettings&) const = default;
 };
-inline float dotVisibility(float x,float y,float w,float h,float radius,float holeDiameter) {
+inline float dotVisibility(float x,float y,float w,float h,float radius,float holeDiameter,float innerOpacity=.12f) {
     float dx=x-w*.5f,dy=y-h*.5f;
     float hole=std::min(w,h)*holeDiameter*.5f;
     float distance=std::sqrt(dx*dx+dy*dy);
@@ -119,7 +142,7 @@ inline float dotVisibility(float x,float y,float w,float h,float radius,float ho
     float fade=std::clamp((distance-hole-radius)/(std::min(w,h)*.08f),0.f,1.f);
     fade=fade*fade*(3-2*fade);
     float edge=std::clamp(std::sqrt(dx*dx/(w*w*.25f)+dy*dy/(h*h*.25f)),0.f,1.f);
-    return fade*(.12f+.88f*edge*edge);
+    return fade*std::lerp(innerOpacity,1.f,edge*edge);
 }
 inline bool knownGame(const std::wstring& name) {
     return name==L"payday2_win32_release.exe" || name==L"payday2_win64_release.exe" || name==L"payday2.exe"

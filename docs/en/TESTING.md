@@ -13,7 +13,7 @@ The build directory's `desktop_smoke.exe` runs static, regional and edge self-ca
 ## UI regression
 
 1. Check light, dark and system themes, dropdowns, sliders, buttons and document scrolling.
-2. Cycle Regional → Edge → Static → Regional; inspect background-adaptation controls and independent saved settings.
+2. Cycle Regional, Screen-edge, Static and Mesh dots. Inspect the background controls and each style's saved settings.
 3. Minimize/restore, resize live, open/scroll/close instructions; watch for missing paint, persistent ghosts and white borders.
 4. Verify Licenses & credits contains the complete project license, design/video links and third-party notices.
 5. Verify logging starts only when enabled and stops when disabled; an unwritable directory should report failure without making the app unusable.
@@ -21,7 +21,7 @@ The build directory's `desktop_smoke.exe` runs static, regional and edge self-ca
 
 ## Game comparisons
 
-The user performs game testing, preferably in a familiar PAYDAY 2 single-player scene. Hold resolution, FOV, frame cap and sensitivity constant. Compare app off, app running with overlay hidden, Static, Regional and Edge.
+Choose a familiar scene and keep resolution, field of view, frame limit and sensitivity consistent. Compare the game with the overlay hidden, then with Static, Regional, Screen-edge and Mesh dots.
 
 Use short runs along the same route. Record distraction, occlusion, dot continuity, subjective discomfort from 0–10 and onset time. Stop on discomfort. Short subjective improvements are not a universal or medical conclusion.
 

@@ -39,8 +39,10 @@ inline DebugScene buildDebugScene(const DebugHistory& history,bool chinese,size_
     auto label=[&](float x,float y,std::wstring text,Color c){s.labels.push_back({x,y,std::move(text),c});};
     auto line=[&](Vec2 a,Vec2 b,Color c,float width=1.f){s.strokes.push_back({a,b,c,width});};
     s.rects.push_back({0,0,s.width,s.height,{.025f,.04f,.07f},.87f});
-    std::wstring style=chinese?(d.style==0?L"分区":d.style==1?L"屏边":L"静态"):(d.style==0?L"Regional":d.style==1?L"Edge":L"Static");
-    label(12,8,(chinese?L"运动可视化  ·  ":L"Motion view  |  ")+style+(d.staggered?(chinese?L" / 交错":L" / Staggered"):(chinese?L" / 方形":L" / Square")),ink);
+    std::wstring style=d.style==TriangleStyle?(chinese?L"网格点阵":L"Mesh dots"):
+        chinese?(d.style==0?L"分区":d.style==1?L"屏边":L"静态"):(d.style==0?L"Regional":d.style==1?L"Edge":L"Static");
+    if(d.style!=TriangleStyle)style+=d.staggered?(chinese?L" / 交错":L" / Staggered"):(chinese?L" / 方形":L" / Square");
+    label(12,8,(chinese?L"运动可视化  ·  ":L"Motion view  |  ")+style,ink);
     std::array<Color,4> colors{cyan,amber,purple,green};
     auto names=chinese?std::array{L"输入预测",L"驱动光流",L"融合运动",L"点阵运动"}:std::array{L"Input",L"Drive flow",L"Fused",L"Dots"};
     for(int i=0;i<4;++i){s.rects.push_back({12.f+i*111,35,7,7,colors[i],1});label(24.f+i*111,29,names[i],colors[i]);}
@@ -82,7 +84,20 @@ inline DebugScene buildDebugScene(const DebugHistory& history,bool chinese,size_
         std::array<Vec2,4> vectors{d.input[r],d.hasSelectedFlow?d.selectedFlow[r]:d.flow.velocity[r],d.fused[r],d.compensation[r]};
         for(int i=0;i<4;++i)arrow({x+25.f+i*30,y+35},vectors[i],colors[i],i!=1 || (confidence && q>=.65f));
     }
-    label(12,275,d.flow.directEvidence?(chinese?L"D：直接观测格数 · 缺测不借用邻区向量":L"D: directly observed cells | No spatial borrowing"):(chinese?L"色条：光流可信度；灰短线：数据不可用":L"Bar: flow confidence; grey dash: unavailable"),muted);
+    if(d.style==TriangleStyle){
+        std::wstring field=d.backgroundHeld?(chinese?L"背景延续 ":L"Background hold "):
+            d.backgroundActive?(chinese?L"背景主导 ":L"Background active "):(chinese?L"局部观测 ":L"Local flow ");
+        field+=std::to_wstring(d.backgroundSupport)+(chinese?L" · 接管 ":L" | Override ");
+        field+=std::to_wstring(d.foregroundSuppressed)+(chinese?L" · 独立 ":L" | Independent ");
+        field+=std::to_wstring(d.independentCells);
+        label(12,275,std::move(field),muted);
+    }else if(d.flow.directEvidence){
+        std::wstring field=chinese?L"D：直接格数 · 模型补充 ":L"D: measured cells | Model fill ";
+        field+=std::to_wstring(d.modeledCells)+(chinese?L" · 模型可信度 ":L" | Model confidence ");
+        field+=debugNumber(d.cameraConfidence*100,0)+L"%";
+        field+=(chinese?L" · 分界 ":L" | Boundaries ")+std::to_wstring(d.motionBoundaries);
+        label(12,275,std::move(field),muted);
+    }else label(12,275,chinese?L"色条：光流可信度；灰短线：数据不可用":L"Bar: flow confidence; grey dash: unavailable",muted);
     if(d.style==1)label(12,293,chinese?L"屏边取自 R4 / R6 / R2 / R8":L"Edge sources: R4 / R6 / R2 / R8",muted);
     else label(12,293,(chinese?L"可见点数 ":L"Visible dots ")+std::to_wstring(dots)+(chinese?L"  ·  输入为映射估计":L"  |  Input is an estimate"),muted);
     auto graph=[&](float top,int kind){
@@ -117,7 +132,11 @@ inline DebugScene buildDebugScene(const DebugHistory& history,bool chinese,size_
         }
     };
     graph(333,0);graph(390,1);graph(447,2);
-    label(12,485,chinese?L"最近10秒；预测误差 / 实际呈现延迟：N/A":L"Last 10s; prediction error / display latency: N/A",muted);
+    if(d.flow.chromaActive){
+        label(12,485,(chinese?L"色度辅助 ":L"Color assist ")+debugNumber(d.flow.chromaMs)+L" ms · +"+
+              std::to_wstring(d.flow.chromaAccepted)+(chinese?L" 点 / ":L" tracks / ")+
+              std::to_wstring(d.flow.chromaCells)+(chinese?L" 格":L" cells"),muted);
+    }else label(12,485,chinese?L"最近10秒；预测误差 / 实际呈现延迟：N/A":L"Last 10s; prediction error / display latency: N/A",muted);
     label(12,507,(chinese?L"光流帧龄 ":L"Flow source age ")+debugNumber(d.flow.timestamp>0?(d.now-d.flow.timestamp)*1000:-1)+L" ms  | "+(chinese?L"完成后 ":L"Since completion ")+debugNumber(d.flow.completedTimestamp>0?(d.now-d.flow.completedTimestamp)*1000:-1)+L" ms",muted);
     if(d.flow.analysisWidth>0) {
         auto& info=*std::find_if(s.labels.begin(),s.labels.end(),[](const auto& label){return label.y==293;});

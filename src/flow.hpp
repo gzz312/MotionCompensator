@@ -56,7 +56,7 @@ inline float median(std::vector<float> values) {
 // consensus rejects independently moving regions; it cannot identify semantics.
 inline MotionSample estimateFlow(const std::vector<float>& a,const std::vector<float>& b,
     int w,int h,double dt,double timestamp,int sourceW,int sourceH) {
-    MotionSample s;s.timestamp=timestamp;s.regionConfidence.fill(0);
+    MotionSample s;s.timestamp=timestamp;s.regionConfidence.fill(0);s.sourceWidth=sourceW;s.sourceHeight=sourceH;
     if(w<120 || h<84 || a.size()!=size_t(w)*h || b.size()!=a.size() || !std::isfinite(dt)
         || !std::isfinite(timestamp) || dt<.015 || dt>.15 || sourceW<=0 || sourceH<=0) return s;
     for(size_t i=0;i<a.size();++i) if(!std::isfinite(a[i]) || !std::isfinite(b[i])) return s;

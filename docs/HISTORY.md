@@ -1,5 +1,13 @@
 # 版本记录 / Changelog
 
+## 0.2.0-preview.10 — 网格点阵与游戏配置 / Mesh dots and game profiles
+
+新增网格点阵及可选纵深效果。支持已登记游戏自动连接、独立外观和按键配置、多菜单规则与可自定义的全局快捷键。设置按功能分为五个页面，运行诊断提供网格统计，中英文使用说明介绍四种点阵的用途。
+
+Adds Mesh dots with optional Depth effect, automatic connection for registered games, per-game appearance and bindings, menu rules and customizable global shortcuts. The five settings pages include mesh diagnostics and an updated bilingual User Guide.
+
+[发布说明 / Release notes](RELEASE-0.2.0-preview.10.md)
+
 ## 0.1.0-preview.14 — 设置界面与滑块响应（2026-11-12）
 
 - 设置界面改为横向工作台：顶部连接、左侧预览、右侧点阵与准星独立页面。

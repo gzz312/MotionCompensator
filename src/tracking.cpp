@@ -7,7 +7,7 @@
 #include <cstring>
 namespace mc {
 namespace {
-struct Track {cv::Point2f p,q;int region;};
+struct Track {cv::Point2f p,q;int region;int cell=-1;};
 using Model=std::array<double,6>;
 cv::Point2f project(const Model& m,cv::Point2f p) {return {float(m[0]*p.x+m[1]*p.y+m[2]),float(m[3]*p.x+m[4]*p.y+m[5])};}
 bool solve3(double a[3][4],std::array<double,3>& out) {
@@ -125,11 +125,16 @@ MotionSample estimateTrackedFlow(const std::vector<float>& previous,const std::v
 }
 namespace detail {
 MotionSample aggregateFlow(MotionSample result,int w,int h,double dt,int sourceW,int sourceH,float maxRoundTrip) {
-    std::array<std::vector<int>,81> cellTracks;
-    for(size_t i=0;i<result.observations.size();++i)if(result.observations[i].valid)
-        cellTracks[result.observations[i].cell].push_back(int(i));
-    const float scale=std::max(1.f,w/320.f);
+    result.sourceWidth=sourceW;result.sourceHeight=sourceH;
     const float sx=float(sourceW)/w/float(dt),sy=float(sourceH)/h/float(dt);
+    std::array<std::vector<int>,81> cellTracks;
+    for(size_t i=0;i<result.observations.size();++i){
+        const auto& o=result.observations[i];
+        if(!o.valid)continue;
+        if(result.cells[o.cell].chromaReplacesQuiet&&!o.chromaMatch&&std::hypot(o.displacement.x*sx,o.displacement.y*sy)<25)continue;
+        cellTracks[o.cell].push_back(int(i));
+    }
+    const float scale=std::max(1.f,w/320.f);
     for(int cell=0;cell<81;++cell){
         auto& out=result.cells[cell];const auto& ids=cellTracks[cell];if(ids.size()<2)continue;
         // Dominant local cluster, not a full-image affine constraint. A moving
@@ -157,34 +162,86 @@ MotionSample aggregateFlow(MotionSample result,int w,int h,double dt,int sourceW
     // Fit whole-background fields from one vote per reliable analysis cell.
     // Texture-rich weapons/HUD must not gain extra votes from more keypoints.
     std::vector<Track> balanced,moving;
-    for(int cell=0;cell<81&&!result.denseFlow;++cell){const auto& c=result.cells[cell];if(c.confidence<.65f)continue;
+    for(int cell=0;cell<81;++cell){const auto& c=result.cells[cell];if(c.confidence<.65f)continue;
         cv::Point2f p((cell%9+.5f)*w/9,(cell/9+.5f)*h/9),v(c.velocity.x/sx,c.velocity.y/sy);
-        Track track{p,p+v,(cell/9/3)*3+(cell%9)/3};balanced.push_back(track);
-        if(cv::norm(v)>.18) moving.push_back(track);
+        Track track{p,p+v,(cell/9/3)*3+(cell%9)/3,cell};balanced.push_back(track);
+        if(std::hypot(c.velocity.x,c.velocity.y)>32) moving.push_back(track);
     }
-    auto fitBackground=[&](const std::vector<Track>& candidates,Model& fitted,int& support,std::array<int,9>& regionalSupport){
+    auto fitBackground=[&](const std::vector<Track>& candidates,Model& fitted,int& support,std::array<int,9>& regionalSupport,AffineFlow& output){
         if(candidates.size()<12)return 0.f;
-        std::mt19937 random(7251);std::vector<int> best;float bestScore=-1;
-        for(int attempt=0;attempt<160;++attempt){
-            std::vector<int> selected;while(selected.size()<3){int i=int(random()%candidates.size());if(std::find(selected.begin(),selected.end(),i)==selected.end())selected.push_back(i);}
+        std::mt19937 random(7251);
+        std::vector<int> best,selected,inliers;
+        selected.reserve(3);best.reserve(81);inliers.reserve(81);
+        float bestScore=-1;
+        for(int attempt=0;attempt<64;++attempt){
+            selected.clear();inliers.clear();
+            while(selected.size()<3){int i=int(random()%candidates.size());if(std::find(selected.begin(),selected.end(),i)==selected.end())selected.push_back(i);}
+            if(result.denseFlow){
+                const auto a=candidates[selected[1]].p-candidates[selected[0]].p;
+                const auto b=candidates[selected[2]].p-candidates[selected[0]].p;
+                if(std::abs(a.x*b.y-a.y*b.x)<.06f*w*h)continue;
+            }
             Model candidate{};if(!fit(candidates,selected,candidate))continue;
-            std::vector<int> inliers;std::array<bool,9> regions{};float minX=float(w),maxX=0,minY=float(h),maxY=0;
-            for(size_t i=0;i<candidates.size();++i)if(cv::norm(project(candidate,candidates[i].p)-candidates[i].q)<=.9*scale){
-                inliers.push_back(int(i));auto t=candidates[i];regions[t.region]=true;minX=std::min(minX,t.p.x);maxX=std::max(maxX,t.p.x);minY=std::min(minY,t.p.y);maxY=std::max(maxY,t.p.y);
+            std::array<bool,9> regions{};float minX=float(w),maxX=0,minY=float(h),maxY=0;
+            for(size_t i=0;i<candidates.size();++i){
+                const auto& track=candidates[i];
+                const auto error=project(candidate,track.p)-track.q;
+                if(error.dot(error)>.81f*scale*scale)continue;
+                inliers.push_back(int(i));regions[track.region]=true;
+                minX=std::min(minX,track.p.x);maxX=std::max(maxX,track.p.x);
+                minY=std::min(minY,track.p.y);maxY=std::max(maxY,track.p.y);
             }
             int coverage=int(std::count(regions.begin(),regions.end(),true));
             if(coverage<5 || maxX-minX<w*.45f || maxY-minY<h*.35f)continue;
             float score=float(inliers.size())+coverage*.5f;
-            if(score>bestScore){bestScore=score;best=std::move(inliers);}
+            if(score>bestScore){bestScore=score;best=inliers;}
         }
         if(best.size()<12 || !fit(candidates,best,fitted))return 0.f;
         double determinant=fitted[0]*fitted[4]-fitted[1]*fitted[3];if(determinant<.65 || determinant>1.5)return 0.f;
-        support=int(best.size());for(int i:best)++regionalSupport[candidates[i].region];
-        return std::min(1.f,support/18.f)*std::min(1.f,float(support)/candidates.size()/.6f);
+        std::array<bool,9> regions{};
+        float squared=0,minX=float(w),maxX=0,minY=float(h),maxY=0;
+        for(const auto& track:candidates){
+            const auto error=project(fitted,track.p)-track.q;
+            const float residual=error.dot(error);
+            if(residual>.81f*scale*scale)continue;
+            ++support;++regionalSupport[track.region];regions[track.region]=true;
+            output.support[track.cell]=true;
+            squared+=error.x*error.x*sx*sx+error.y*error.y*sy*sy;
+            minX=std::min(minX,track.p.x);maxX=std::max(maxX,track.p.x);
+            minY=std::min(minY,track.p.y);maxY=std::max(maxY,track.p.y);
+        }
+        if(support<12||std::count(regions.begin(),regions.end(),true)<5||
+           maxX-minX<w*.45f||maxY-minY<h*.35f){support=0;regionalSupport={};output={};return 0.f;}
+        const cv::Point2f center(w*.5f,h*.5f);
+        const auto displacement=project(fitted,center)-center;
+        output.center={displacement.x*sx,displacement.y*sy};
+        output.slopeX={float((fitted[0]-1)*w*sx),float(fitted[3]*w*sy)};
+        output.slopeY={float(fitted[1]*h*sx),float((fitted[4]-1)*h*sy)};
+        output.residual=std::sqrt(squared/support);
+        output.confidence=std::min(1.f,support/18.f)*std::min(1.f,float(support)/candidates.size()/.65f);
+        return output.confidence;
     };
     Model model{},movingModel{};
-    result.globalConfidence=fitBackground(balanced,model,result.globalSupportCells,result.globalRegionSupport);
-    result.movingBackgroundConfidence=fitBackground(moving,movingModel,result.movingBackgroundSupportCells,result.movingRegionSupport);
+    AffineFlow movingCandidate;
+    result.globalConfidence=fitBackground(balanced,model,result.globalSupportCells,result.globalRegionSupport,result.cameraModel);
+    if(moving.size()==balanced.size()){
+        movingModel=model;
+        movingCandidate=result.cameraModel;
+        result.movingBackgroundConfidence=result.globalConfidence;
+        result.movingBackgroundSupportCells=result.globalSupportCells;
+        result.movingRegionSupport=result.globalRegionSupport;
+    }else{
+        result.movingBackgroundConfidence=fitBackground(moving,movingModel,result.movingBackgroundSupportCells,result.movingRegionSupport,movingCandidate);
+    }
+    result.movingCameraModel=movingCandidate;
+    // A moving-only fit cannot win by ignoring most contradictory observations.
+    const auto strength=[](const AffineFlow& f){
+        return std::hypot(f.center.x,f.center.y)+.20f*(std::hypot(f.slopeX.x,f.slopeX.y)+std::hypot(f.slopeY.x,f.slopeY.y));
+    };
+    if(movingCandidate.confidence>=.73f&&result.movingBackgroundSupportCells>=20&&
+       result.movingBackgroundSupportCells>=.55f*balanced.size()&&
+       (result.cameraModel.confidence<.73f||(strength(result.cameraModel)<25&&strength(movingCandidate)>45)))
+        result.cameraModel=movingCandidate;
     bool globalValid=result.globalConfidence>=.65f;
     for(int r=0;r<9;++r){
         cv::Point2f p((r%3+.5f)*w/3,(r/3+.5f)*h/3);

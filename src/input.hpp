@@ -1,6 +1,7 @@
 #pragma once
 #include "common.hpp"
 #include "dynamic.hpp"
+#include "menu_controller.hpp"
 #include <xinput.h>
 class InputObserver {
     using GetState=DWORD(WINAPI*)(DWORD,XINPUT_STATE*);
@@ -10,7 +11,6 @@ class InputObserver {
     mc::Vec2 smoothed_{};
     uint16_t mouseButtons_=0;
     HANDLE absoluteDevice_{};LONG absoluteX_=0,absoluteY_=0;bool absoluteKnown_=false;
-    std::array<bool,256> keys_{};
     std::array<bool,4> connected_{};
 public:
     uint64_t mouseEvents=0,keyEvents=0,padChanges=0;
@@ -23,7 +23,7 @@ public:
     void initialize(HWND window);
     void clear();
     void setTarget(HWND target,bool active);
-    void onRaw(HRAWINPUT handle);
-    mc::InputState poll(double now,float dt);
+    std::optional<mc::RawKey> onRaw(HRAWINPUT handle,bool observeMenuKeys,const mc::MovementBindings& bindings);
+    mc::InputState poll(double now,float dt,const mc::MovementBindings& bindings);
     bool padApiAvailable() const {return getState_!=nullptr;}
 };

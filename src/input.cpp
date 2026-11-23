@@ -16,19 +16,19 @@ void InputObserver::initialize(HWND window) {
     rawReady=RegisterRawInputDevices(devices,2,sizeof(devices[0]))!=FALSE;
     if(!rawReady) registrationError=GetLastError();
 }
-void InputObserver::clear() {dx_=dy_=0;smoothed_={};keys_.fill(false);absoluteKnown_=false;mouseButtons_=0;}
+void InputObserver::clear() {dx_=dy_=0;smoothed_={};absoluteKnown_=false;mouseButtons_=0;}
 void InputObserver::setTarget(HWND target,bool active) {
     if(target!=target_ || active!=active_) clear();
     target_=target;active_=active;
 }
-void InputObserver::onRaw(HRAWINPUT handle) {
-    if(!active_ || !target_ || GetForegroundWindow()!=target_) return;
+std::optional<mc::RawKey> InputObserver::onRaw(HRAWINPUT handle,bool observeMenuKeys,const mc::MovementBindings& bindings) {
+    if(!active_ || !target_ || GetForegroundWindow()!=target_) return std::nullopt;
     RAWINPUT raw{};UINT size=sizeof(raw);
     UINT read=GetRawInputData(handle,RID_INPUT,&raw,&size,sizeof(RAWINPUTHEADER));
-    if(read==UINT(-1) || read<sizeof(RAWINPUTHEADER)) return;
+    if(read==UINT(-1) || read<sizeof(RAWINPUTHEADER)) return std::nullopt;
     if(raw.header.dwType==RIM_TYPEMOUSE) {
         const auto& mouse=raw.data.mouse;
-        if(mouse.lLastX==0&&mouse.lLastY==0&&(mouse.usButtonFlags&0x03ff)==0)return;
+        if(mouse.lLastX==0&&mouse.lLastY==0&&(mouse.usButtonFlags&0x03ff)==0)return std::nullopt;
         ++mouseEvents;lastEvent=qpcSeconds();
         for(int button=0;button<5;++button) {
             if(mouse.usButtonFlags&(1<<(button*2))) mouseButtons_|=uint16_t(1<<button);
@@ -42,14 +42,16 @@ void InputObserver::onRaw(HRAWINPUT handle) {
             absoluteX_=mouse.lLastX;absoluteY_=mouse.lLastY;absoluteDevice_=raw.header.hDevice;absoluteKnown_=true;
         } else {dx_+=mouse.lLastX;dy_+=mouse.lLastY;absoluteKnown_=false;}
     } else if(raw.header.dwType==RIM_TYPEKEYBOARD) {
-        auto key=raw.data.keyboard.VKey;
-        // Keep only movement controls, never record typed text or arbitrary keys.
-        if(key=='W'||key=='A'||key=='S'||key=='D'||key==VK_UP||key==VK_DOWN||key==VK_LEFT||key==VK_RIGHT||key==VK_SHIFT||key==VK_CONTROL||key==VK_SPACE) {
-            keys_[key]=(raw.data.keyboard.Flags&RI_KEY_BREAK)==0;++keyEvents;lastEvent=qpcSeconds();
+        const auto& keyboard=raw.data.keyboard;
+        const auto key=mc::physicalKey(keyboard.VKey,keyboard.MakeCode,(keyboard.Flags&RI_KEY_E0)!=0);
+        if(key>0&&key<255){
+            if(mc::movementUsesKey(bindings,key)){++keyEvents;lastEvent=qpcSeconds();}
+            if(observeMenuKeys)return mc::RawKey{uint16_t(key),(keyboard.Flags&RI_KEY_BREAK)==0};
         }
     }
+    return std::nullopt;
 }
-mc::InputState InputObserver::poll(double now,float dt) {
+mc::InputState InputObserver::poll(double now,float dt,const mc::MovementBindings& bindings) {
     mc::InputState out;out.timestamp=now;
     if(!active_ || !target_ || GetForegroundWindow()!=target_) {clear();return out;}
     float seconds=std::clamp(std::isfinite(dt)?dt:0.f,.004f,.1f);
@@ -60,10 +62,12 @@ mc::InputState InputObserver::poll(double now,float dt) {
     out.mouseRate=smoothed_;out.mouse=std::hypot(smoothed_.x,smoothed_.y)>1;
     out.mouseButtons=mouseButtons_;
     // Resync held movement keys after focus changes or missed break messages.
-    for(int key:std::array<int,11>{'W','A','S','D',VK_UP,VK_DOWN,VK_LEFT,VK_RIGHT,VK_SHIFT,VK_CONTROL,VK_SPACE}) keys_[key]=(GetAsyncKeyState(key)&0x8000)!=0;
-    out.sprint=keys_[VK_SHIFT];out.crouch=keys_[VK_CONTROL];out.jump=keys_[VK_SPACE];
-    auto down=[&](int a,int b){return keys_[a]||keys_[b];};
-    out.move={float(down('D',VK_RIGHT))-float(down('A',VK_LEFT)),float(down('W',VK_UP))-float(down('S',VK_DOWN))};
+    using mc::MoveAction;
+    auto down=[&](MoveAction action){return mc::movementPressed(bindings,size_t(action));};
+    out.sprint=down(MoveAction::Sprint);out.crouch=down(MoveAction::Crouch);out.jump=down(MoveAction::Jump);
+    out.prone=down(MoveAction::Prone);
+    out.move={float(down(MoveAction::Right))-float(down(MoveAction::Left)),
+              float(down(MoveAction::Forward))-float(down(MoveAction::Back))};
     out.keyboard=out.move.x!=0 || out.move.y!=0;
     float length=std::hypot(out.move.x,out.move.y);if(length>1) {out.move.x/=length;out.move.y/=length;}
     float best=-1;bool probe=now>=nextProbe_;

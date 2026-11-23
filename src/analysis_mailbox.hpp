@@ -11,6 +11,7 @@ struct GrayFrame {
     double timestamp=0;
     int sourceWidth=0,sourceHeight=0;
     uint64_t generation=0;
+    std::vector<uint16_t> chroma; // Optional packed Cb/Cr from this same GPU readback.
 };
 // One replaceable slot: slow analysis cannot build a FIFO of old frames.
 class AnalysisMailbox {

@@ -79,6 +79,34 @@ inline void navigation(const DRAWITEMSTRUCT& d,bool selected){
     if(selected)rounded(g,12*scale,h-3*scale,24*scale,3*scale,1.5f*scale,accent);
     if((d.itemState&ODS_FOCUS)&&!(SendMessageW(d.hwndItem,WM_QUERYUISTATE,0,0)&UISF_HIDEFOCUS)){RECT focus=d.rcItem;InflateRect(&focus,-3,-3);DrawFocusRect(dc,&focus);}frame.present();
 }
+inline void sidebarItem(const DRAWITEMSTRUCT& item, bool selected) {
+    const RECT bounds = item.rcItem;
+    UiPaintBuffer frame(item.hDC, bounds);
+    HDC dc = frame.dc();
+    FillRect(dc, &bounds, ui::surfaceBrush());
+    const float scale = float(bounds.bottom) / 40;
+    Gdiplus::Graphics graphics(dc);
+    graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+    if (selected || hovered(item.hwndItem)) {
+        rounded(graphics, 1, 1, float(bounds.right - 2), float(bounds.bottom - 2),
+                5 * scale, selected ? ui::palette.selected : ui::palette.hover);
+    }
+    if (selected) {
+        rounded(graphics, 4 * scale, 12 * scale, 3 * scale, 16 * scale, 1.5f * scale, accent);
+    }
+    graphics.Flush();
+    RECT labelRect = bounds;
+    labelRect.left += int(16 * scale);
+    labelRect.right -= int(8 * scale);
+    auto font = reinterpret_cast<HFONT>(SendMessageW(item.hwndItem, WM_GETFONT, 0, 0));
+    text(dc, labelRect, label(item.hwndItem), font, ink);
+    if ((item.itemState & ODS_FOCUS) && !(SendMessageW(item.hwndItem,WM_QUERYUISTATE,0,0) & UISF_HIDEFOCUS)) {
+        RECT focus = bounds;
+        InflateRect(&focus,-3,-3);
+        DrawFocusRect(dc,&focus);
+    }
+    frame.present();
+}
 inline void segment(const DRAWITEMSTRUCT& d,bool selected){
     UiPaintBuffer frame(d.hDC,d.rcItem);HDC dc=frame.dc();HBRUSH bg=CreateSolidBrush(ui::palette.hover);FillRect(dc,&d.rcItem,bg);DeleteObject(bg);
     Gdiplus::Graphics g(dc);g.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);float h=float(d.rcItem.bottom),width=float(d.rcItem.right);

@@ -10,6 +10,7 @@ Gdiplus::Color color(mc::Color c,float alpha){
     auto byte=[](float v){return BYTE(std::lround(std::clamp(v,0.f,1.f)*255));};
     return {byte(alpha),byte(c.r),byte(c.g),byte(c.b)};
 }
+
 }
 void paintPreview(HDC dc,POINT origin,const mc::PreviewScene& scene) {
     if(scene.width<=0||scene.height<=0)return;
@@ -25,8 +26,11 @@ void paintPreview(HDC dc,POINT origin,const mc::PreviewScene& scene) {
         g.ScaleTransform(float(points[1].x-points[0].x)/scene.width,float(points[1].y-points[0].y)/scene.height);
         float left=std::ceil(scene.contentLeft),top=std::ceil(scene.contentTop);
         g.SetClip(Gdiplus::RectF(left,top,std::max(0.f,std::floor(scene.contentRight)-left),std::max(0.f,std::floor(scene.contentBottom)-top)));
-        for(const auto& dot:scene.dots){Gdiplus::SolidBrush brush(color(dot.color,dot.opacity));
-            g.FillEllipse(&brush,dot.position.x-dot.radius,dot.position.y-dot.radius,2*dot.radius,2*dot.radius);}
+        Gdiplus::SolidBrush dotBrush(color({},0));
+        for(const auto& dot:scene.dots){
+            dotBrush.SetColor(color(dot.color,dot.opacity));
+            g.FillEllipse(&dotBrush,dot.position.x-dot.radius,dot.position.y-dot.radius,2*dot.radius,2*dot.radius);
+        }
         Gdiplus::Pen pen(color(scene.reticleColor,scene.reticleOpacity),1.f);
         for(auto line:scene.reticle)g.DrawLine(&pen,line.from.x,line.from.y,line.to.x,line.to.y);
         Gdiplus::SolidBrush brush(color(scene.reticleColor,scene.reticleOpacity));

@@ -2,6 +2,7 @@
 #include "dots.hpp"
 #include "appearance.hpp"
 #include "reticle.hpp"
+#include "triangle_mesh.hpp"
 namespace mc {
 struct PreviewDot {Vec2 position;float radius,opacity;Color color{};};
 struct PreviewLine {Vec2 from,to;};
@@ -28,7 +29,10 @@ inline PreviewScene buildPreview(const VisualSettings& settings,int w=324,int h=
                 result.dots.push_back({{ox+dot.position.x*scale,oy+dot.position.y*scale},std::max(.75f,layer.radius*scale),layer.opacity,layer.color});
     };
     std::array<Vec2,9> still{};
-    if(settings.style==2){for(const auto& dot:staticDots(sourceW,sourceH,settings))add(dot);}
+    if(settings.style==TriangleStyle){
+        const auto lattice=triangleLattice(sourceW,sourceH,liveMeshSpacing(sourceW,sourceH,settings.spacing));
+        for(int row=0;row<lattice.rows;++row)for(int col=0;col<lattice.columns;++col)add({lattice.point(col,row)});
+    }else if(settings.style==2){for(const auto& dot:staticDots(sourceW,sourceH,settings))add(dot);}
     else if(settings.style==1) {
         EdgeDotField field;
         for(const auto& dot:field.update(still,sourceW,sourceH,settings,0))add(dot);

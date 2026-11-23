@@ -3,7 +3,7 @@
 #include "lattice.hpp"
 #include <vector>
 namespace mc {
-struct DotVisual {Vec2 position;float opacity=1,radiusScale=1;int region=0;float blendWeight=1;};
+struct DotVisual {Vec2 position;float opacity=1,radiusScale=1;int region=0;float blendWeight=1;float depthCue=0,depthAmount=0;};
 // Fixed 4x4 reference. Outer columns carry halos; inner columns stay compact.
 inline std::vector<DotVisual> staticDots(int w,int h,const VisualSettings& settings){
     std::vector<DotVisual> result;
@@ -15,10 +15,8 @@ inline std::vector<DotVisual> staticDots(int w,int h,const VisualSettings& setti
     dx=std::max(dx,std::min(w*.5f-margin,std::min(w,h)*settings.holeDiameter*1.6f));
     for(int row=0;row<4;++row)for(int col=0;col<4;++col){
         float x=w*.5f+(col/3.f*2-1)*dx;
-        if(settings.staggered&&(row&1))x+=dx/6;
         float y=h*.5f+(row/3.f*2-1)*dy;
-        // Enforce clearance after stagger: retain all sixteen points and row
-        // alignment, moving only an encroaching column away from the center.
+        // Keep all sixteen points and move only dots that encroach on the center.
         float outer=settings.radius*(col==0||col==3?2.73f:1.f);
         float required=std::min(w,h)*settings.holeDiameter*.5f+outer+1;
         float vertical=y-h*.5f;

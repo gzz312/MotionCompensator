@@ -2,6 +2,7 @@
 #include "core.hpp"
 #include <vector>
 #include <memory>
+#include <span>
 namespace mc {
 class TrackingWorkspace;
 MotionSample estimateTrackedFlow(const std::vector<float>& previous,const std::vector<float>& current,
@@ -25,7 +26,8 @@ MotionSample aggregateFlow(MotionSample result,int width,int height,double dt,
 }
 class DenseFlowWorkspace {
     struct Data;std::unique_ptr<Data> data_;
-    friend MotionSample estimateDenseFlow(const std::vector<float>&,const std::vector<float>&,int,int,double,double,int,int,DenseFlowWorkspace*);
+    friend MotionSample estimateDenseFlow(const std::vector<float>&,const std::vector<float>&,int,int,double,double,int,int,
+                                          DenseFlowWorkspace*,std::span<const uint16_t>,std::span<const uint16_t>,const ChromaInputHint&);
 public:
     DenseFlowWorkspace();~DenseFlowWorkspace();
     DenseFlowWorkspace(const DenseFlowWorkspace&)=delete;
@@ -34,6 +36,7 @@ public:
 };
 MotionSample estimateDenseFlow(const std::vector<float>& previous,const std::vector<float>& current,
     int width,int height,double dt,double timestamp,int sourceWidth,int sourceHeight,
-    DenseFlowWorkspace* workspace=nullptr);
+    DenseFlowWorkspace* workspace=nullptr,std::span<const uint16_t> previousChroma={},std::span<const uint16_t> currentChroma={},
+    const ChromaInputHint& input={});
 
 }

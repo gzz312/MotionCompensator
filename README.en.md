@@ -2,43 +2,28 @@
 
 [中文](README.md) | **English**
 
-MotionCompensator is a Windows visual aid focused on first-person games, designed to help reduce visually induced motion sickness and discomfort, using customizable dot references and an optional central reticle. Choose regional scrolling, screen-edge scrolling or a static reference, with separate appearance settings, background brightness adaptation, Chinese/English UI and light/dark themes.
+MotionCompensator is a Windows visual aid designed to ease 3D motion discomfort while gaming. It provides customizable dot patterns and an optional center reticle as visual references.
 
-**Windows x64 · 0.1.0-preview.14 preview**
+**Windows x64 · 0.2.0-preview.10 preview**
 
-[Download the preview](https://github.com/gzz312/MotionCompensator/releases/download/v0.1.0-preview.14/MotionCompensator-0.1.0-preview.14-win-x64.zip) · [Release notes and checksums](https://github.com/gzz312/MotionCompensator/releases/tag/v0.1.0-preview.14)
+[Download for Windows](https://github.com/gzz312/MotionCompensator/releases/download/v0.2.0-preview.10/MotionCompensator-0.2.0-preview.10-win-x64.zip) · [Release notes and checksums](https://github.com/gzz312/MotionCompensator/releases/tag/v0.2.0-preview.10)
 
 ## Settings interface
 
-### Upcoming interface · 0.2.0-preview.10
+Connect a game in Overview. Open Visual effects to choose a dot style, adjust its appearance, or save a game-specific profile. Use Game keys to record movement bindings and menu or inventory rules.
 
-Open Visual effects to select Mesh dots, adjust the pattern and enable Depth effect. The User Guide describes when to try each of the four dot styles.
+![English Mesh dots settings, with an appearance preview on the left and dot options on the right](assets/ui/preview.10/mesh-settings-en.jpg)
 
-![New English Mesh dots settings, with an appearance preview on the left and dot options on the right](assets/ui/preview.10/mesh-settings-en.jpg)
+[View the built-in guide in Chinese](assets/ui/preview.10/user-guide-zh.jpg)
 
-[View the updated User Guide in Chinese](assets/ui/preview.10/user-guide-zh.jpg)
+## Choosing a dot style
 
-### Current download · 0.1.0-preview.14
+- **Static dots** give you a fixed 4×4 reference with adjustable coverage.
+- **Screen-edge dots** put moving dots along selected edges, leaving room for aiming, subtitles or the game interface.
+- **Regional dots** divide the screen into nine areas that respond to local motion. Use Boundary fade to soften their transitions.
+- **Mesh dots** move continuously across the screen and add or remove nodes to manage spacing. Optional Depth effect uses color and dot size to distinguish expansion from contraction.
 
-Connect a game at the top, view the appearance preview on the left and switch between Dots and Reticle settings on the right. Dot styles use a segmented selector, with appearance and motion settings grouped below. Scroll overflowing content with the wheel or scrollbar; page navigation and the preview remain fixed.
-
-Dragging prioritizes the thumb and current value. Preview updates are coalesced and synchronized to the final value on release. Settings remain automatically saved, with independent dot profiles.
-
-![Light settings interface](assets/ui/workbench-light.png)
-
-<details><summary>Dark interface</summary>
-
-![Dark settings interface](assets/ui/workbench-dark.png)
-
-</details>
-
-## Three dot styles
-
-- **Regional dots:** continuously scrolling regions driven by observed motion and input prediction, with staggered layouts, boundary fading and a clear center.
-- **Screen-edge dots:** larger dots along selected screen edges, using scrolling, fading and size differences to present motion.
-- **Static dots:** a fixed 4×4 reference, with soft halos on the outer columns. Select it through the interface or shortcut.
-
-Adjust dot size, color, transparency and layout independently for each style. Dynamic styles also offer motion strength and direction reversal. The optional reticle uses compact icon buttons for Cross, Diamond cross, Dot, Ring, Open cross, T-shape and Diamond.
+Each style saves its own appearance. Dynamic styles have adjustable motion strength and direction. Background adaptation offers brightness changes and outlines. The center reticle has separate shape, size, color and transparency settings.
 
 ## Gameplay demonstration (0.1.0-preview.1)
 
@@ -56,34 +41,22 @@ The GIF is scaled and compressed to illustrate the dots' appearance and movement
 
 ## Getting started
 
-1. Download and extract the preview ZIP, then run `MotionCompensator.exe`. No OpenCV or compiler installation is needed.
-2. Start a game, preferably in borderless/windowed mode. Leave automatic foreground-game detection enabled and switch to a recognized game, or refresh the window list and select the game window manually.
-3. Choose a style on the Dots page. Adjust the appearance and motion groups; scroll the right-hand area when necessary. The overlay appears over the target game and hides when you switch away.
-4. Open the Reticle page to enable and adjust the central reticle if desired. Use the **中文 / English** button to change the interface language and the theme button to cycle light, dark and system themes.
+1. Extract the preview package and open `MotionCompensator.exe`. Use borderless or windowed mode for the game.
+2. In Overview, refresh the window list, select your game and choose Register and connect. Enable automatic connection to reconnect when a registered game is next in the foreground. Use Connect once for a single session.
+3. Adjust dots or the reticle in Visual effects, then return to the game to see the overlay. Select Global defaults or a game profile below Appearance preview.
+4. Use General to change language, theme or shortcuts. In Game keys, configure menu open and return keys to hide the overlay, pause it or temporarily show Static dots.
 
-| Shortcut | Action |
+| Default shortcut | Action |
 | --- | --- |
 | Ctrl+Alt+F8 | Cycle dot styles |
-| Ctrl+Alt+F9 | Show or hide the overlay |
+| Ctrl+Alt+F9 | Toggle the overlay |
 | Ctrl+Alt+F10 | Stop capture and automatic connection |
 
-The application can run as a single EXE, with instructions and license texts embedded. Close other versions first to avoid shortcut conflicts.
+## Compatibility and feedback
 
-## Usage tips and compatibility
+The app captures the selected window using Windows Graphics Capture and combines optical flow with keyboard, mouse or controller input prediction locally. Plain roads, large areas of sky, cuts and foreground objects can reduce the motion visible to the app. Try different dot styles in the same scene and choose whichever feels most comfortable. [Known issues](docs/en/KNOWN-ISSUES.md)
 
-Dots are an optional visual aid. Experiences vary by person and game, and relief from motion discomfort is not guaranteed. Start with a short session and stop if discomfort develops.
-
-Third-person driving, large stationary foregrounds and uniform backgrounds may cause missed motion, excessive estimated speed or interrupted dot motion. These scenarios have not been specifically optimized.
-
-Exclusive fullscreen can hide the overlay. Strong motion blur, camera cuts and weapon/HUD occlusion can affect motion estimation. Multi-monitor/high-DPI support and full keyboard navigation still need improvement; see [known issues](docs/en/KNOWN-ISSUES.md).
-
-The app captures windows externally with Windows Graphics Capture and drives the dots with local grayscale dense optical flow and keyboard/mouse/controller input prediction. Capture continuously updates adjacent images while analysis targets 30 updates/s; actual throughput depends on delivered frames and processing capacity. It uses no hooks, DLL injection, game-memory reading or anti-cheat bypasses. Check that the target game permits external overlays before use.
-
-## Reporting issues
-
-Open an [Issue](https://github.com/gzz312/MotionCompensator/issues) with the application version, game/window mode, display scaling and reproduction steps.
-
-**Log** is off by default. Enable it when diagnosing a problem, reproduce the issue, then disable it. Files are saved beside the EXE in `logs/` and are not uploaded automatically. Review process information and other local details before sharing. [Feedback and contribution guide](CONTRIBUTING.md#english) · [Local data and privacy](docs/en/PRIVACY.md)
+Diagnostics shows capture, motion and mesh information. Enable Log to collect details while reproducing a problem. Log files are saved in `logs/` beside the EXE. When reporting an issue, include the app version, game, window mode, display scaling and steps to reproduce. [Report an issue](https://github.com/gzz312/MotionCompensator/issues) · [Local data and privacy](docs/en/PRIVACY.md)
 
 ## License
 

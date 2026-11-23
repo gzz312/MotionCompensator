@@ -11,7 +11,10 @@ namespace mc {
 void sanitize(Preferences& v) {
     auto bound=[](float x,float lo,float hi,float fallback){return std::clamp(std::isfinite(x)?x:fallback,lo,hi);};
     auto color=[&](Color& c){c.r=bound(c.r,0,1,1);c.g=bound(c.g,0,1,1);c.b=bound(c.b,0,1,1);};
-    v.theme=std::clamp(v.theme,0,2);v.selected=std::clamp(v.selected,0,2);v.reticleShape=std::clamp(v.reticleShape,0,ReticleShapeCount-1);
+    v.theme=std::clamp(v.theme,0,2);
+    v.meshDepthStrength=bound(v.meshDepthStrength,0,1,.70f);
+    if(v.selected!=TriangleStyle)v.selected=std::clamp(v.selected,0,2);
+    v.reticleShape=std::clamp(v.reticleShape,0,ReticleShapeCount-1);
     v.reticleOpacity=bound(v.reticleOpacity,0,1,1);v.reticleSize=bound(v.reticleSize,ReticleSizeMin,ReticleSizeMax,10);color(v.reticleColor);
     for(size_t i=0;i<v.profiles.size();++i) {
         auto& p=v.profiles[i];p.enhancement=i==1;
@@ -23,24 +26,31 @@ void sanitize(Preferences& v) {
 VisualSettings visualSettingsFromPreferences(const Preferences& input) {
     auto value=input;sanitize(value);const auto& p=value.profiles[value.selected];VisualSettings v;
     v.style=value.selected;v.radius=p.radius;v.opacity=p.opacity;v.spacing=p.spacing;v.holeDiameter=p.hole;v.edgeWidth=p.edgeWidth;v.edges=p.edges;
-    v.appearance=p.appearance;v.dots=p.color;v.enhancement=p.enhancement;v.boundaryFade=p.boundaryFade;v.staggered=p.staggered;
+    v.appearance=p.appearance;v.dots=p.color;v.enhancement=p.enhancement;v.boundaryFade=p.boundaryFade;
+    v.staggered=hasStaggeredOption(v.style)&&p.staggered;
     v.reticleShape=value.reticleShape;v.reticleSize=value.reticleSize;v.reticleOpacity=value.reticleOpacity;v.reticle=value.reticleColor;
+    v.meshDepth=value.meshDepth;
+    v.meshDepthStrength=value.meshDepthStrength;
     return v;
 }
 void writePreferences(std::ostream& out,const Preferences& input) {
-    auto v=input;sanitize(v);out<<std::setprecision(9)<<"MotionCompensatorSettings 4\n";
+    auto v=input;sanitize(v);out<<std::setprecision(9)<<"MotionCompensatorSettings 6\n";
+    out<<"depth "<<v.meshDepth<<' '<<v.meshDepthStrength<<'\n';
     out<<"common "<<v.selected<<' '<<v.chinese<<' '<<v.visible<<' '<<v.automatic<<' '<<v.reticleShape<<' '<<v.reticleOpacity<<' '<<v.reticleSize<<' '<<v.reticleColor.r<<' '<<v.reticleColor.g<<' '<<v.reticleColor.b<<' '<<v.theme<<'\n';
-    for(size_t i=0;i<3;++i) {auto p=v.profiles[i];out<<"profile "<<i<<' '<<p.radius<<' '<<p.opacity<<' '<<p.spacing<<' '<<p.hole<<' '<<p.edgeWidth<<' '<<p.gain<<' '<<p.color.r<<' '<<p.color.g<<' '<<p.color.b<<' '<<p.enhancement<<' '<<p.boundaryFade<<' '<<p.inverted<<' '<<p.edges<<' '<<p.staggered<<' '<<p.appearance<<'\n';}
+    for(size_t i=0;i<v.profiles.size();++i) {auto p=v.profiles[i];out<<"profile "<<i<<' '<<p.radius<<' '<<p.opacity<<' '<<p.spacing<<' '<<p.hole<<' '<<p.edgeWidth<<' '<<p.gain<<' '<<p.color.r<<' '<<p.color.g<<' '<<p.color.b<<' '<<p.enhancement<<' '<<p.boundaryFade<<' '<<p.inverted<<' '<<p.edges<<' '<<p.staggered<<' '<<p.appearance<<'\n';}
 }
 bool readPreferences(std::istream& in,Preferences& result) {
     Preferences next;std::string key;int version=0;
-    if(!(in>>key>>version) || key!="MotionCompensatorSettings" || (version!=1 && version!=2 && version!=3 && version!=4)) return false;
+    if(!(in>>key>>version) || key!="MotionCompensatorSettings" || version<1 || version>6) return false;
+    if(version>=6 && (!(in>>key>>next.meshDepth>>next.meshDepthStrength)||key!="depth"))return false;
     if(version==1)for(auto& p:next.profiles)p.staggered=false;
     if(!(in>>key) || key!="common" || !(in>>next.selected>>next.chinese>>next.visible>>next.automatic>>next.reticleShape>>next.reticleOpacity>>next.reticleSize>>next.reticleColor.r>>next.reticleColor.g>>next.reticleColor.b)) return false;
     if(version>=4 && !(in>>next.theme))return false;
-    std::array<bool,3> seen{};
-    for(int n=0;n<3;++n) {
-        int i=-1;if(!(in>>key>>i) || key!="profile" || i<0 || i>2 || seen[i]) return false;
+    const int styles=version>=5?VisualStyleCount:3;
+    if(version<5)next.selected=std::clamp(next.selected,0,styles-1);
+    std::array<bool,VisualStyleCount> seen{};
+    for(int n=0;n<styles;++n) {
+        int i=-1;if(!(in>>key>>i) || key!="profile" || i<0 || i>=styles || seen[i]) return false;
         seen[i]=true;auto& p=next.profiles[i];
         if(!(in>>p.radius>>p.opacity>>p.spacing>>p.hole>>p.edgeWidth>>p.gain>>p.color.r>>p.color.g>>p.color.b>>p.enhancement>>p.boundaryFade>>p.inverted>>p.edges)) return false;
         if(version>=2 && !(in>>p.staggered)) return false;
@@ -67,8 +77,10 @@ bool loadUserPreferences(Preferences& result,bool& found,std::string& error,cons
     found=false;error.clear();HKEY handle{};auto status=RegOpenKeyExW(HKEY_CURRENT_USER,key,0,KEY_QUERY_VALUE,&handle);
     if(status==ERROR_FILE_NOT_FOUND)return true;
     if(status!=ERROR_SUCCESS){error="Cannot open user settings: "+std::to_string(status);return false;}
-    DWORD type=0,bytes=0;const wchar_t* name=L"PreferencesV4";
+    DWORD type=0,bytes=0;const wchar_t* name=L"PreferencesV6";
     status=RegQueryValueExW(handle,name,nullptr,&type,nullptr,&bytes);
+    if(status==ERROR_FILE_NOT_FOUND){name=L"PreferencesV5";status=RegQueryValueExW(handle,name,nullptr,&type,nullptr,&bytes);}
+    if(status==ERROR_FILE_NOT_FOUND){name=L"PreferencesV4";status=RegQueryValueExW(handle,name,nullptr,&type,nullptr,&bytes);}
     if(status==ERROR_FILE_NOT_FOUND){name=L"PreferencesV3";status=RegQueryValueExW(handle,name,nullptr,&type,nullptr,&bytes);}
     if(status==ERROR_FILE_NOT_FOUND){name=L"Preferences";status=RegQueryValueExW(handle,name,nullptr,&type,nullptr,&bytes);}
     if(status==ERROR_FILE_NOT_FOUND){RegCloseKey(handle);return true;}
@@ -81,7 +93,7 @@ bool loadUserPreferences(Preferences& result,bool& found,std::string& error,cons
 bool saveUserPreferences(const Preferences& value,std::string& error,const wchar_t* key){
     error.clear();std::ostringstream output;writePreferences(output,value);auto data=output.str();HKEY handle{};
     auto status=RegCreateKeyExW(HKEY_CURRENT_USER,key,0,nullptr,0,KEY_SET_VALUE,nullptr,&handle,nullptr);
-    if(status==ERROR_SUCCESS){status=RegSetValueExW(handle,L"PreferencesV4",0,REG_BINARY,reinterpret_cast<const BYTE*>(data.data()),DWORD(data.size()));RegCloseKey(handle);}
+    if(status==ERROR_SUCCESS){status=RegSetValueExW(handle,L"PreferencesV6",0,REG_BINARY,reinterpret_cast<const BYTE*>(data.data()),DWORD(data.size()));RegCloseKey(handle);}
     if(status!=ERROR_SUCCESS){error="Cannot save user settings: "+std::to_string(status);return false;}
     return true;
 }

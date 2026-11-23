@@ -5,8 +5,8 @@
 MotionCompensator 使用 Windows 原生 C++20，实现外部窗口采集、运动估计和透明点阵浮层。
 
 - **窗口与采集**：Win32提供窗口选择与前台目标识别，Windows Graphics Capture提供游戏画面。
-- **运动估计**：局部灰度稠密光流与只读键鼠/手柄输入观察共同驱动动态点阵。输入代表操作意图，不等同于角色或车辆的实际运动。
-- **点阵渲染**：Direct2D与DirectComposition绘制透明、鼠标穿透的浮层，提供分区滚动、屏边滚动与固定4×4静态参照。静态方案由用户选择。
+- **运动估计**：灰度稠密光流配合色度辅助和短时输入预测，向动态点阵提供运动信息。网格点阵按屏幕位置查询速度与可信度。
+- **点阵渲染**：Direct2D 与 DirectComposition 绘制透明、鼠标穿透的浮层，提供分区、屏边、静态和网格点阵。
 - **外观适配**：点阵颜色、大小、透明度、布局与准星可调；背景亮度采样支持同色相明暗变化及双层描边。
 - **诊断与界面**：提供中英界面、明暗主题、统一调试可视化、可选日志、错误状态与悬停提示。
 
@@ -23,8 +23,8 @@ MotionCompensator 使用 Windows 原生 C++20，实现外部窗口采集、运�
 MotionCompensator is a native Windows C++20 application for external window capture, motion estimation and transparent visual overlays.
 
 - Win32 supplies window selection and foreground-target detection; Windows Graphics Capture supplies images.
-- Local grayscale dense optical flow and read-only keyboard/mouse/controller observations drive dynamic dots. Input indicates intent, not actual character or vehicle motion.
-- Direct2D and DirectComposition render a transparent, click-through overlay with Regional, Screen-edge and user-selected 4×4 Static styles.
+- Grayscale dense optical flow, color assist and short-term input prediction drive dynamic dots. Mesh dots query the screen-space field for local velocity and confidence.
+- Direct2D and DirectComposition render the transparent, click-through overlay for Regional, Screen-edge, Static and Mesh dots.
 - Adjustable dot/reticle appearance and background brightness sampling support same-hue brightness changes and layered outlines.
 - The native Win32 settings workbench separates page navigation, dot-style selection and scrollable appearance/motion controls. Slider input updates only its parameter and label; preview updates are coalesced separately. Chinese/English labels, themes, visual diagnostics, opt-in logs, error states and hover help remain available.
 

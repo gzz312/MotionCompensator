@@ -31,6 +31,15 @@ inline Color tintLightness(Color c,float light){
     if(light>base){float t=(light-base)/std::max(.001f,1-base);return {std::lerp(c.r,1.f,t),std::lerp(c.g,1.f,t),std::lerp(c.b,1.f,t)};}
     float t=light/std::max(.001f,base);return {c.r*t,c.g*t,c.b*t};
 }
+inline Color depthTint(Color base,float cue,float amount){
+    const float gray=.2126f*base.r+.7152f*base.g+.0722f*base.b;
+    const Color tint=cue<0?Color{.16f,.54f,1.f}:Color{1.f,.24f,.22f};
+    const float saturation=std::abs(cue);
+    const float neutral=std::min(1.f,2.2f*amount);
+    return {std::lerp(std::lerp(base.r,gray,neutral),tint.r,saturation),
+            std::lerp(std::lerp(base.g,gray,neutral),tint.g,saturation),
+            std::lerp(std::lerp(base.b,gray,neutral),tint.b,saturation)};
+}
 struct DotLayer {float radius,opacity;Color color;};
 struct DotLayers {
     std::array<DotLayer,9> layers{};size_t count=0;

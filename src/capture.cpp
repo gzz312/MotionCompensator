@@ -19,6 +19,51 @@ namespace cap = ABI::Windows::Graphics::Capture;
 namespace gfx = ABI::Windows::Graphics;
 namespace dx = ABI::Windows::Graphics::DirectX;
 namespace foundation = ABI::Windows::Foundation;
+namespace {
+using CaptureClosedHandler=foundation::ITypedEventHandler<cap::GraphicsCaptureItem*,IInspectable*>;
+
+class CaptureClosed final : public CaptureClosedHandler {
+    std::atomic<ULONG> refs_{1};
+public:
+    std::atomic<bool> closed{false};
+
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID id,void** result) override {
+        if(!result)return E_POINTER;
+        *result=nullptr;
+        if(id!=__uuidof(IUnknown)&&id!=__uuidof(IAgileObject)&&id!=__uuidof(CaptureClosedHandler))
+            return E_NOINTERFACE;
+        *result=static_cast<CaptureClosedHandler*>(this);
+        AddRef();
+        return S_OK;
+    }
+
+    ULONG STDMETHODCALLTYPE AddRef() override {return ++refs_;}
+    ULONG STDMETHODCALLTYPE Release() override {
+        const ULONG remaining=--refs_;
+        if(!remaining)delete this;
+        return remaining;
+    }
+
+    HRESULT STDMETHODCALLTYPE Invoke(cap::IGraphicsCaptureItem*,IInspectable*) override {
+        closed.store(true);
+        return S_OK;
+    }
+};
+
+struct CaptureClosure {
+    ComPtr<cap::IGraphicsCaptureItem> item;
+    ComPtr<CaptureClosed> handler;
+    EventRegistrationToken token{};
+    bool registered{};
+
+    explicit CaptureClosure(cap::IGraphicsCaptureItem* captureItem) : item(captureItem) {
+        handler.Attach(new CaptureClosed);
+        registered=SUCCEEDED(item->add_Closed(handler.Get(),&token));
+    }
+    ~CaptureClosure(){if(registered)item->remove_Closed(token);}
+    bool closed() const {return handler->closed.load();}
+};
+}
 template<class T> ComPtr<T> factory(const wchar_t* name) {
     HSTRING text{}; check(WindowsCreateString(name, static_cast<UINT32>(wcslen(name)), &text), "WindowsCreateString");
     ComPtr<T> result; HRESULT hr=RoGetActivationFactory(text, __uuidof(T), reinterpret_cast<void**>(result.GetAddressOf()));
@@ -29,7 +74,7 @@ template<class T> void closeObject(ComPtr<T>& object) {
 }
 void Capture::stop() { if(thread_.joinable()) { thread_.request_stop(); thread_.join(); } }
 void Capture::start(HWND window,bool diagnostic,std::filesystem::path debugDirectory) {
-    stop(); { std::lock_guard lock(mutex_); stats_={}; stats_.status="Starting WGC"; }
+    stop(); { std::lock_guard lock(mutex_); stats_={};chromaHint_={};stats_.status="Starting WGC"; }
     thread_=std::jthread([this,window,diagnostic,debugDirectory](std::stop_token stop){run(stop,window,diagnostic,debugDirectory);});
 }
 void Capture::run(std::stop_token stop, HWND window,bool diagnostic,std::filesystem::path debugDirectory) {
@@ -50,6 +95,7 @@ void Capture::run(std::stop_token stop, HWND window,bool diagnostic,std::filesys
         ComPtr<dx::Direct3D11::IDirect3DDevice> runtimeDevice; check(inspectable.As(&runtimeDevice),"IDirect3DDevice");
         ComPtr<cap::IGraphicsCaptureItem> item;
         check(factory<IGraphicsCaptureItemInterop>(L"Windows.Graphics.Capture.GraphicsCaptureItem")->CreateForWindow(window,__uuidof(cap::IGraphicsCaptureItem),reinterpret_cast<void**>(item.GetAddressOf())),"CreateForWindow");
+        CaptureClosure closure(item.Get());
         gfx::SizeInt32 size{}; check(item->get_Size(&size),"Capture size");
         auto format=dx::DirectXPixelFormat_B8G8R8A8UIntNormalized;
         check(factory<cap::IDirect3D11CaptureFramePoolStatics2>(L"Windows.Graphics.Capture.Direct3D11CaptureFramePool")->CreateFreeThreaded(runtimeDevice.Get(),format,2,size,&pool),"CreateFreeThreaded");
@@ -57,8 +103,11 @@ void Capture::run(std::stop_token stop, HWND window,bool diagnostic,std::filesys
         mc::CaptureBorder border;border.start(session.Get());
         check(session->StartCapture(),"StartCapture");
         { std::lock_guard lock(mutex_); stats_.running=true; stats_.status="WGC active / waiting for analysis"; }
-        Downsample analysis; bool analysisReady=false;
-        std::vector<float> pixels;double lastAnalysis=0;bool wasActive=false,wasFlow=flowEnabled_.load();
+        Downsample analysis; bool analysisReady=false,usingChroma=false,chromaUnavailable=false,lastChromaRequest=false;
+        std::vector<float> pixels;
+        std::vector<uint16_t> chromaPixels;
+        double lastAnalysis=0,nextReadbackAttempt=0;
+        bool wasActive=false,wasFlow=flowEnabled_.load(),wasBackground=backgroundEnabled_.load();
         mc::CaptureCadence cadence;
         mc::AnalysisPairMailbox mailbox(1./30);
         std::jthread processor([&](std::stop_token token){
@@ -84,7 +133,12 @@ void Capture::run(std::stop_token stop, HWND window,bool diagnostic,std::filesys
                 try {
                     if(previous.sourceWidth==current.sourceWidth && previous.sourceHeight==current.sourceHeight && dt>0){
 #ifdef MC_HAS_OPENCV
-                        motion=mc::estimateDenseFlow(previous.pixels,current.pixels,Downsample::W,Downsample::H,dt,current.timestamp,current.sourceWidth,current.sourceHeight,&workspace);
+                        mc::ChromaInputHint hint;
+                        if(!current.chroma.empty()){
+                            std::lock_guard lock(mutex_);hint=chromaHint_;
+                        }
+                        motion=mc::estimateDenseFlow(previous.pixels,current.pixels,Downsample::W,Downsample::H,dt,current.timestamp,
+                                                     current.sourceWidth,current.sourceHeight,&workspace,previous.chroma,current.chroma,hint);
 #else
                         motion=mc::estimateFlow(previous.pixels,current.pixels,Downsample::W,Downsample::H,dt,current.timestamp,current.sourceWidth,current.sourceHeight);
 #endif
@@ -117,11 +171,35 @@ void Capture::run(std::stop_token stop, HWND window,bool diagnostic,std::filesys
             analysis.resetHistory();mailbox.reset();cadence.reset();
             std::lock_guard lock(mutex_);stats_.motion={};stats_.light={};++stats_.flowResets;
         };
-        while(!stop.stop_requested() && IsWindow(window)) {
+        while(!stop.stop_requested() && IsWindow(window) && !closure.closed()) {
             border.poll();{std::lock_guard lock(mutex_);stats_.borderlessState=border.state;}
             bool active=diagnostic || (GetForegroundWindow()==window && !IsIconic(window));
             bool flow=flowEnabled_.load();
-            if(active!=wasActive||flow!=wasFlow) {resetHistory();wasActive=active;wasFlow=flow;}
+            const bool background=backgroundEnabled_.load();
+            bool chromaRequested=false;
+#ifdef MC_HAS_OPENCV
+            chromaRequested=chromaEnabled_.load();
+#endif
+            if(chromaRequested!=lastChromaRequest){
+                chromaUnavailable=false;lastChromaRequest=chromaRequested;
+                std::lock_guard lock(mutex_);stats_.chromaUnavailable=false;
+            }
+            const bool wantChroma=chromaRequested&&flow&&!chromaUnavailable;
+            const bool chromaChanged=wantChroma!=usingChroma;
+            if(chromaChanged){
+                analysis=Downsample{};analysisReady=false;usingChroma=wantChroma;
+                chromaPixels=std::vector<uint16_t>{};
+            }
+            const bool motionChanged=active!=wasActive||flow!=wasFlow||chromaChanged;
+            if(motionChanged) {
+                resetHistory();wasActive=active;wasFlow=flow;
+            }
+            if(motionChanged||background!=wasBackground) {
+                nextReadbackAttempt=0;
+                wasBackground=background;
+                std::lock_guard lock(mutex_);
+                if(stats_.readbackErrorSince){stats_.readbackErrorSince=0;stats_.status="WGC active / waiting for analysis";}
+            }
             ComPtr<cap::IDirect3D11CaptureFrame> frame;
             uint64_t receivedFrames=0;
             // Drain the bounded WGC queue before copying. Processing and GPU
@@ -141,31 +219,48 @@ void Capture::run(std::stop_token stop, HWND window,bool diagnostic,std::filesys
                   stats_.ageMs=(now-timestamp)*1000; stats_.width=content.Width; stats_.height=content.Height; }
                 bool resized=content.Width!=size.Width || content.Height!=size.Height;
                 if(resized) resetHistory();
-                if(active && (flowEnabled_.load()||backgroundEnabled_.load()) && !resized && content.Width>0 && content.Height>0){
+                if(active && (flow||background) && now>=nextReadbackAttempt && !resized && content.Width>0 && content.Height>0){
                     try {
-                        if(!analysisReady){analysis.initialize(device.Get());analysisReady=true;}
+                        if(!analysisReady){analysis.initialize(device.Get(),usingChroma);analysisReady=true;}
                         ComPtr<SurfaceAccess> access;check(surface.As(&access),"Surface access");
                         ComPtr<ID3D11Texture2D> texture;check(access->GetInterface(IID_PPV_ARGS(&texture)),"Capture texture");
                         double stamp=0;int frameW=0,frameH=0;bool submitted=false;
                         if(flow)cadence.observe(timestamp,receivedFrames);
                         double readBegin=qpcSeconds();
                         std::vector<Downsample::Readback> preceding;
-                        bool ready=analysis.read(texture.Get(),pixels,timestamp,stamp,frameW,frameH,flow?true:now-lastAnalysis>=.1,submitted,&preceding);
-                        {std::lock_guard lock(mutex_);stats_.readbackCallMs=(qpcSeconds()-readBegin)*1000;if(ready&&flow)stats_.sourceReadbacks+=preceding.size()+1;}
+                        bool ready=analysis.read(texture.Get(),pixels,chromaPixels,timestamp,stamp,frameW,frameH,
+                                                 flow||now-lastAnalysis>=.1,submitted,&preceding);
+                        {std::lock_guard lock(mutex_);stats_.readbackCallMs=(qpcSeconds()-readBegin)*1000;
+                            if(stats_.readbackErrorSince){stats_.readbackErrorSince=0;stats_.status="WGC active / waiting for analysis";}
+                            if(ready&&flow)stats_.sourceReadbacks+=preceding.size()+1;}
                         if(submitted)lastAnalysis=now;
                         {std::lock_guard lock(mutex_);stats_.observedCaptureFps=flow?cadence.captureFps():0;stats_.targetAnalysisFps=flow?cadence.targetFps():0;}
                         if(ready){
                             {std::lock_guard lock(mutex_);if(backgroundEnabled_.load() && stamp-stats_.light.timestamp>=.09){double begin=qpcSeconds();stats_.light.update(pixels,Downsample::W,Downsample::H,stamp);stats_.brightnessMs=(qpcSeconds()-begin)*1000;++stats_.brightnessUpdates;}}
                             if(flowEnabled_.load()){
                                 std::vector<mc::GrayFrame> completed;completed.reserve(preceding.size()+1);
-                                for(auto& earlier:preceding)completed.push_back({std::move(earlier.pixels),earlier.timestamp,earlier.width,earlier.height,0});
-                                completed.push_back({std::move(pixels),stamp,frameW,frameH,0});mailbox.submitBatch(std::move(completed));
+                                for(auto& earlier:preceding)
+                                    completed.push_back({std::move(earlier.pixels),earlier.timestamp,earlier.width,earlier.height,0,std::move(earlier.chroma)});
+                                completed.push_back({std::move(pixels),stamp,frameW,frameH,0,std::move(chromaPixels)});
+                                mailbox.submitBatch(std::move(completed));
                             }
                             else {mailbox.reset();std::lock_guard lock(mutex_);stats_.motion={};stats_.status="WGC / background brightness only";}
                         }
                     }catch(const std::exception& e){
+                        if(FAILED(device->GetDeviceRemovedReason()))throw;
                         resetHistory();analysisReady=false;
-                        std::lock_guard lock(mutex_);stats_.status=std::string("Capture readback error: ")+e.what();
+                        analysis=Downsample{};
+                        if(usingChroma){
+                            chromaUnavailable=true;
+                            std::lock_guard lock(mutex_);
+                            stats_.chromaUnavailable=true;
+                            stats_.status="WGC active / waiting for analysis";
+                        }else{
+                            nextReadbackAttempt=now+.25;
+                            std::lock_guard lock(mutex_);
+                            if(!stats_.readbackErrorSince)stats_.readbackErrorSince=now;
+                            stats_.status=std::string("Capture readback error: ")+e.what();
+                        }
                     }
                 }
                 surface.Reset(); closeObject(frame);
@@ -176,7 +271,7 @@ void Capture::run(std::stop_token stop, HWND window,bool diagnostic,std::filesys
             std::this_thread::sleep_for(std::chrono::milliseconds(8));
         }
         processor.request_stop();processor.join();
-        { std::lock_guard lock(mutex_); stats_.status="Capture stopped"; }
+        { std::lock_guard lock(mutex_); stats_.status=closure.closed()?"Capture item closed":"Capture stopped"; }
     } catch(const std::exception& e) { std::lock_guard lock(mutex_); stats_.status=e.what(); }
     closeObject(session); closeObject(pool);
     { std::lock_guard lock(mutex_); stats_.running=false; }
