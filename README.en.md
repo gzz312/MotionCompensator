@@ -10,6 +10,16 @@ MotionCompensator is a Windows visual aid focused on first-person games, designe
 
 ## Settings interface
 
+### Upcoming interface · 0.2.0-preview.10
+
+Open Visual effects to select Mesh dots, adjust the pattern and enable Depth effect. The User Guide describes when to try each of the four dot styles.
+
+![New English Mesh dots settings, with an appearance preview on the left and dot options on the right](assets/ui/preview.10/mesh-settings-en.jpg)
+
+[View the updated User Guide in Chinese](assets/ui/preview.10/user-guide-zh.jpg)
+
+### Current download · 0.1.0-preview.14
+
 Connect a game at the top, view the appearance preview on the left and switch between Dots and Reticle settings on the right. Dot styles use a segmented selector, with appearance and motion settings grouped below. Scroll overflowing content with the wheel or scrollbar; page navigation and the preview remain fixed.
 
 Dragging prioritizes the thumb and current value. Preview updates are coalesced and synchronized to the final value on release. Settings remain automatically saved, with independent dot profiles.
